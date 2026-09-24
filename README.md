@@ -219,6 +219,21 @@ Android can't record other apps' calls (and many states/countries need everyone'
   resolved against today's date and the phone's time zone.
 - Not verified on a device yet: Google Tasks via share sheet, sms:/mailto: behaviour, calendar links opening the app.
 
+### NEXT: Krypu remembers people between calls - 2026-09-24 (Ken, in progress)
+Ken: tasks go to a task area **and** are stored in Krypu; notes are stored in Krypu; next time you call, Krypu reminds
+you ("Is your daughter Ava feeling better?").
+- **Done:** `src/ai.js` `analyzeNote()` now returns `{tasks, follow_ups, facts}` (Claude prompt + zod schema updated;
+  no-AI fallback turns news like "sick/interview/trip" into follow-ups). `src/memory.js` has the data helpers
+  (`recordCall`, `addTasks`, `toggleTask`, `markAsked`, `personMemory`). `settings.js` has `tasks: []`, `calls: {}`.
+- **To do:**
+  1. After "Find tasks": call `recordCall()` with the note + follow-ups + facts (also when there are no tasks) and
+     `addTasks()` for ticked tasks - always, whichever external target is chosen; add a "Keep in Krypu only" option.
+  2. Person sheet, top: **Before you call** - open follow-ups ("Ask if Ava is feeling better", with an "Asked ✓" to
+     clear), facts ("Daughter: Ava"), open tasks with checkboxes, and recent calls (date · app · note).
+  3. New **Tasks** screen (`src/app/tasks.js`, button on home): open tasks grouped by person, tick to complete,
+     completed list below.
+  4. Replace the "append tasks to person notes" line in TasksPopup with the above.
+
 ## Look and feel
 **Personal styling, not REMAX corporate colours.** This is a household app — warm and plain, nothing
 that looks like a work tool.

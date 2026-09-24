@@ -2,7 +2,7 @@
 import { Redirect, router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, AppState, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { extractTasks } from '../ai';
+import { analyzeNote } from '../ai';
 import { HOSTABLE } from '../myRooms';
 import { saveTasks, TASK_TARGETS } from '../saveTasks';
 import { getAiKey } from '../secret';
@@ -216,8 +216,8 @@ function AfterCallNotes({ call, t, onDone, onTasks }) {
     try {
       const apiKey = settings.aiProvider === 'claude' ? await getAiKey() : null;
       const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const tasks = await extractTasks({ note, personName: call.person.name, ai: { provider: settings.aiProvider, apiKey }, timeZone: zone });
-      if (tasks.length) onTasks(tasks, note); else setError('No tasks found in that note.');
+      const found = await analyzeNote({ note, personName: call.person.name, ai: { provider: settings.aiProvider, apiKey }, timeZone: zone });
+      if (found.tasks.length) onTasks(found.tasks, note); else setError('No tasks found in that note.');
     } catch (e) {
       setError(e.message || "Couldn't reach the AI. Check your connection and try again.");
     } finally { setBusy(false); }

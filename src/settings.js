@@ -20,6 +20,11 @@ export const DEFAULTS = {
   // where tasks were saved last time - becomes the default button ('google' | 'calendar' | 'email' | 'text')
   taskTarget: null,
   myEmail: '',
+  // everything Krypu remembers about calls, kept on the phone:
+  //   tasks: [{id, personId, personName, title, due_date, due_time, done, createdAt}]
+  //   calls: {personId: [{id, at, platform, note, followUps: [{text, done}], facts: [..]}]}  (newest first)
+  tasks: [],
+  calls: {},
 };
 
 const SettingsContext = createContext(null);
@@ -32,7 +37,8 @@ export function SettingsProvider({ children }) {
       .then((raw) => {
         const saved = raw ? JSON.parse(raw) : {};
         setSettings({ ...DEFAULTS, ...saved, enabled: { ...DEFAULTS.enabled, ...saved.enabled },
-                      myRooms: { ...DEFAULTS.myRooms, ...saved.myRooms }, notes: { ...saved.notes }, tz: { ...saved.tz } });
+                      myRooms: { ...DEFAULTS.myRooms, ...saved.myRooms }, notes: { ...saved.notes }, tz: { ...saved.tz },
+                      tasks: saved.tasks ?? [], calls: { ...saved.calls } });
       })
       .catch(() => setSettings(DEFAULTS));
   }, []);
