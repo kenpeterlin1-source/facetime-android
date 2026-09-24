@@ -27,9 +27,23 @@ export const PLATFORMS = {
     match: (url) => /^https:\/\/meet\.google\.com\/[a-z]{3}-[a-z]{4}-[a-z]{3}/i.test(url),
     how: 'Opens their Google Meet link in the Meet app.',
   },
+  teams: {
+    label: 'Teams',
+    tone: 'plum',
+    // personal (teams.live.com/meet) and work (teams.microsoft.com/l/meetup-join or /l/call) links
+    match: (url) => /^https:\/\/(teams\.live\.com\/meet\/|teams\.microsoft\.com\/l\/(meetup-join|call)\/)/i.test(url),
+    how: 'Opens their Teams meeting or call in the Teams app.',
+  },
+  slack: {
+    label: 'Slack',
+    tone: 'slate',
+    // a huddle link copied from a DM or channel; both people must be in that workspace
+    match: (url) => /^https:\/\/(app\.slack\.com\/huddle\/|[a-z0-9-]+\.slack\.com\/)/i.test(url),
+    how: 'Opens your Slack huddle with them in the Slack app.',
+  },
 };
 
-export const PLATFORM_ORDER = ['facetime', 'whatsapp', 'zoom', 'meet'];
+export const PLATFORM_ORDER = ['facetime', 'whatsapp', 'zoom', 'meet', 'teams', 'slack'];
 
 export function detectPlatform(url) {
   return PLATFORM_ORDER.find((key) => PLATFORMS[key].match(url)) ?? null;
