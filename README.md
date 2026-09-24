@@ -171,3 +171,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: added Jitsi, including "Start a Jitsi room" for anyone as the no-app fallback (Ken).
 - 2026-09-24: app will get a web page at **peterlin.com/<appname>** (served from the peterlin.com Cloudflare site, `site/<appname>/`). APK downloads stay on apps.peterlin.com. Name: Krypu → peterlin.com/krypu.
 - 2026-09-24: **renamed to Krypu** (package com.peterlin.krypu). Checked: no existing app by that name; krypu.com and krypu.app unregistered.
+- TODO (end of 2026-09-24 session): rename GitHub repo facetime-android → krypu and local folder ~/personal/facetime-android → ~/personal/krypu (update ~/personal/README.md table + .claude/launch.json path).
