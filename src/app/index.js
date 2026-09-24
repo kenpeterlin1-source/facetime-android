@@ -1,8 +1,11 @@
 // Home: your contacts, filtered to people you can video-call on the apps you use.
 import { Redirect, router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { AppState, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, AppState, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { extractTasks } from '../ai';
 import { HOSTABLE } from '../myRooms';
+import { saveTasks, TASK_TARGETS } from '../saveTasks';
+import { getAiKey } from '../secret';
 import { PLATFORMS } from '../platforms';
 import { SAMPLE_CONTACTS } from '../sampleContacts';
 import { useSettings } from '../settings';
@@ -202,6 +205,106 @@ function CallCheck({ call, t, onWorked, onFailed }) {
   );
 }
 
+// After a call that worked: "Anything to remember?" - type or use the keyboard's mic to dictate.
+function AfterCallNotes({ call, t, onDone, onTasks }) {
+  const { settings } = useSettings();
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const find = async () => {
+    setBusy(true); setError('');
+    try {
+      const apiKey = settings.aiProvider === 'claude' ? await getAiKey() : null;
+      const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const tasks = await extractTasks({ note, personName: call.person.name, ai: { provider: settings.aiProvider, apiKey }, timeZone: zone });
+      if (tasks.length) onTasks(tasks, note); else setError('No tasks found in that note.');
+    } catch (e) {
+      setError(e.message || "Couldn't reach the AI. Check your connection and try again.");
+    } finally { setBusy(false); }
+  };
+  return (
+    <View style={[styles.rooms, { backgroundColor: t.card, borderColor: t.sage }]}>
+      <Text style={[styles.name, { color: t.ink }]}>Anything to remember from your call with {call.person.name}?</Text>
+      <TextInput value={note} onChangeText={setNote} multiline autoFocus
+        placeholder="Mom wants help with her printer on Saturday…  (tap the keyboard mic to talk)" placeholderTextColor={t.muted}
+        style={[styles.note, { backgroundColor: t.paper, borderColor: t.line, color: t.ink }]} />
+      {!!error && <Text style={[styles.sub, { color: t.clay }]}>{error}</Text>}
+      <View style={styles.rowGap}>
+        <Pressable onPress={onDone} style={[styles.half, { backgroundColor: t.paper, borderWidth: 1, borderColor: t.line }]}>
+          <Text style={[ui.primaryText, { color: t.muted }]}>Nothing</Text>
+        </Pressable>
+        <Pressable onPress={find} disabled={!note.trim() || busy} style={[styles.half, { backgroundColor: note.trim() ? t.sage : t.line }]}>
+          {busy ? <ActivityIndicator color={t.paper} /> : <Text style={[ui.primaryText, { color: note.trim() ? t.paper : t.muted }]}>Find tasks</Text>}
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+// Tasks found in the note: untick any you don't want, then save. The last save target becomes the big button.
+function TasksPopup({ found, t, onClose }) {
+  const { settings, update } = useSettings();
+  const [picked, setPicked] = useState(() => found?.tasks.map(() => true) ?? []);
+  const [saved, setSaved] = useState('');
+  if (!found) return null;
+  const chosen = found.tasks.filter((_, i) => picked[i]);
+  const main = TASK_TARGETS.find((x) => x.key === settings.taskTarget);
+  const others = TASK_TARGETS.filter((x) => x !== main);
+
+  const save = async (target) => {
+    update((s) => ({ ...s, taskTarget: target.key,
+      // keep a record on the person too
+      notes: { ...s.notes, [found.person.id]: [s.notes[found.person.id], ...chosen.map((x) => `• ${x.title}`)].filter(Boolean).join('\n') } }));
+    try { await saveTasks(target.key, chosen, { personName: found.person.name, myEmail: settings.myEmail }); } catch {}
+    setSaved(target.label);
+  };
+
+  return (
+    <Modal transparent animationType="fade" visible onRequestClose={onClose}>
+      <Pressable style={[styles.scrim, { backgroundColor: t.scrim }]} onPress={onClose}>
+        <Pressable style={[styles.sheet, styles.sheetBody, { backgroundColor: t.paper, borderColor: t.line }]}>
+          <Text style={[styles.sheetTitle, { color: t.ink }]}>{saved ? `Saved to ${saved}` : 'Tasks from your call'}</Text>
+          {found.tasks.map((task, i) => (
+            <Pressable key={i} onPress={() => setPicked((p) => p.map((v, j) => (j === i ? !v : v)))}
+              style={[styles.option, { backgroundColor: t.card, borderColor: picked[i] ? t.sage : t.line }]}>
+              <View style={[styles.check, { borderColor: picked[i] ? t.sage : t.line, backgroundColor: picked[i] ? t.sage : 'transparent' }]}>
+                {picked[i] && <Text style={[styles.checkMark, { color: t.paper }]}>✓</Text>}
+              </View>
+              <View style={styles.cardBody}>
+                <Text style={[styles.name, { color: t.ink, fontSize: 16 }]}>{task.title}</Text>
+                {!!(task.due_date || task.due_time) &&
+                  <Text style={[styles.sub, { color: t.muted }]}>{[task.due_date, task.due_time].filter(Boolean).join(' · ')}</Text>}
+              </View>
+            </Pressable>
+          ))}
+          {saved ? (
+            <Pressable onPress={onClose} style={[ui.primary, { backgroundColor: t.sage }]}>
+              <Text style={[ui.primaryText, { color: t.paper }]}>Done</Text>
+            </Pressable>
+          ) : (
+            <>
+              {main && (
+                <Pressable onPress={() => save(main)} disabled={!chosen.length} style={[ui.primary, { backgroundColor: chosen.length ? t.clay : t.line }]}>
+                  <Text style={[ui.primaryText, { color: chosen.length ? t.onClay : t.muted }]}>Save to {main.label}</Text>
+                </Pressable>
+              )}
+              <Text style={[ui.section, { color: t.muted }]}>{main ? 'Or save to' : 'Save to'}</Text>
+              <View style={styles.rowGap}>
+                {others.map((x) => (
+                  <Pressable key={x.key} onPress={() => save(x)} disabled={!chosen.length}
+                    style={[styles.half, { paddingHorizontal: 4, backgroundColor: t.card, borderWidth: 1, borderColor: t.line }]}>
+                    <Text style={[styles.sub, { color: t.ink, fontWeight: '600', textAlign: 'center' }]}>{x.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </>
+          )}
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 // Their link failed: ask them for a new one, or paste one you already have.
 function FixTheirLink({ fix, t, onClose, onFixed }) {
   const [draft, setDraft] = useState('');
@@ -246,6 +349,8 @@ export default function Home() {
   const [call, setCall] = useState(null);        // the last call Krypu started: {person, platform, mine, back}
   const [fix, setFix] = useState(null);          // their link that failed, being fixed
   const [broken, setBroken] = useState(new Set()); // "<contactId>:<platform>" links reported as not working
+  const [notesFor, setNotesFor] = useState(null);  // call that worked → "anything to remember?"
+  const [found, setFound] = useState(null);        // {person, tasks} to show in the tasks popup
 
   // Ask "did it work?" once you come back to Krypu from the call app (right away on web, where nothing is launched)
   useEffect(() => {
@@ -311,7 +416,11 @@ export default function Home() {
         )}
       </View>
       {!picking && <UpdateBanner />}
-      {!picking && call?.back && <CallCheck call={call} t={t} onWorked={() => setCall(null)} onFailed={failed} />}
+      {!picking && call?.back && <CallCheck call={call} t={t} onWorked={() => { setNotesFor(call); setCall(null); }} onFailed={failed} />}
+      {!picking && notesFor && (
+        <AfterCallNotes key={notesFor.person.id} call={notesFor} t={t} onDone={() => setNotesFor(null)}
+          onTasks={(tasks) => { setFound({ person: notesFor.person, tasks }); setNotesFor(null); }} />
+      )}
       {picking
         ? <Text style={[ui.lede, { color: t.muted }]}>Pick people, then choose which of your rooms to use. Each of them gets the link by text or WhatsApp.</Text>
         : <View style={[styles.rooms, { backgroundColor: t.card, borderColor: t.line }]}>
@@ -349,6 +458,7 @@ export default function Home() {
       {people.length === 0 && <Text style={[ui.lede, { color: t.muted }]}>No one matches “{query}”.</Text>}
       <PlatformSheet person={selected} rooms={rooms} t={t} onClose={() => setSelected(null)} onLaunch={launch} />
       <FixTheirLink fix={fix} t={t} onClose={() => setFix(null)} onFixed={fixed} />
+      <TasksPopup key={found?.person.id} found={found} t={t} onClose={() => setFound(null)} />
     </Screen>
   );
 }

@@ -15,6 +15,11 @@ export const DEFAULTS = {
   notes: {},
   // time-zone overrides per contact id, when the guess from the phone number is wrong
   tz: {},
+  // AI used to turn after-call notes into tasks ('claude' | 'none'); the key itself is in secure storage (secret.js)
+  aiProvider: 'none',
+  // where tasks were saved last time - becomes the default button ('google' | 'calendar' | 'email' | 'text')
+  taskTarget: null,
+  myEmail: '',
 };
 
 const SettingsContext = createContext(null);

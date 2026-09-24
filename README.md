@@ -205,6 +205,20 @@ Krypu becomes the one place to reach someone ("contact hub"), not only video.
   when it's 10 pm-7 am there); the sheet warns "It's late for Giulia. Maybe send a message first, or call tomorrow."
   Wrong guess → **Change** picks another zone (saved in `settings.tz`). Unknown numbers show no time.
 
+### After-call notes → tasks - 2026-09-24 (Ken)
+Android can't record other apps' calls (and many states/countries need everyone's consent), so Krypu asks right after.
+- "Did it work?" → **Yes** → **"Anything to remember from your call with <name>?"** - type, or use the keyboard's mic
+  to dictate. **Find tasks** → popup with each task (tick/untick) → save.
+- **Save to:** Google Tasks (Android share sheet → Tasks), Calendar (Google Calendar event link per task), Email
+  (`mailto:` to your address from Settings), Text (`sms:`). **The last one used becomes the big default button**
+  (`settings.taskTarget`, also settable in Settings). Saved tasks are also appended to that person's notes.
+- **AI:** setup and Settings ask **"Which AI do you use?"** - Claude (works now; API key stored in the phone's secure
+  storage via expo-secure-store), ChatGPT / Gemini (listed as "later", not wired up), or No AI (on-phone fallback that
+  picks "can you… / remember to…" sentences). Claude call: `src/ai.js`, `claude-opus-5`, effort low, structured output
+  (zod schema: title, due_date, due_time, details), server-side refusal fallback `fallbacks: "default"`; relative days
+  resolved against today's date and the phone's time zone.
+- Not verified on a device yet: Google Tasks via share sheet, sms:/mailto: behaviour, calendar links opening the app.
+
 ## Look and feel
 **Personal styling, not REMAX corporate colours.** This is a household app — warm and plain, nothing
 that looks like a work tool.
@@ -235,3 +249,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: "did it work?" check after each call; failed links route back to fix them. App now follows ~/projects/_templates/expo-app (update.js from template, scripts/release.sh, extra.releasesRepo).
 - 2026-09-24: added Voice (phone dialer, WhatsApp voice) and private per-person notes.
 - 2026-09-24: added local time per person (guessed from the number, overridable) with a late-night warning.
+- 2026-09-24: after-call notes → tasks (Claude or on-phone fallback), save to Google Tasks/Calendar/Email/Text with remembered default; AI provider choice in setup.

@@ -1,6 +1,6 @@
 // Shared building blocks: the topo screen, platform chips, toggles and update banner.
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import TopoBackground from './TopoBackground';
 import { PLATFORMS } from './platforms';
@@ -49,7 +49,8 @@ export function PlatformToggle({ platform, value, onChange, note }) {
 export function UpdateBanner() {
   const t = useTheme();
   const [update, setUpdate] = useState(null);
-  useEffect(() => { U.checkUpdate().then(setUpdate).catch(() => {}); }, []);
+  // skipped in the web preview: GitHub release downloads don't allow browser (CORS) requests
+  useEffect(() => { if (Platform.OS !== 'web') U.checkUpdate().then(setUpdate).catch(() => {}); }, []);
   if (!update) return null;
   return (
     <Pressable onPress={() => U.install(update)} style={[ui.banner, { backgroundColor: t.clay }]}>

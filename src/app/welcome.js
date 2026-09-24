@@ -1,6 +1,7 @@
 // First run: which video apps do you use? Everything here can be changed later in Settings.
 import { router } from 'expo-router';
 import { Pressable, Text } from 'react-native';
+import AiSetup from '../AiSetup';
 import { PLATFORM_ORDER } from '../platforms';
 import { useSettings } from '../settings';
 import { useTheme } from '../theme';
@@ -36,6 +37,8 @@ export default function Welcome() {
       {PLATFORM_ORDER.map((k) => (
         <PlatformToggle key={k} platform={k} value={settings.enabled[k]} onChange={toggle(k)} note={NOTES[k]} />
       ))}
+      <Text style={[ui.section, { color: t.muted }]}>Which AI do you use? (optional)</Text>
+      <AiSetup />
     </Screen>
   );
 }

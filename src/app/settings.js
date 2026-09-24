@@ -2,7 +2,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
+import AiSetup from '../AiSetup';
 import { HOSTABLE, SETUP_HELP } from '../myRooms';
+import { TASK_TARGETS } from '../saveTasks';
 import { detectPlatform, newJitsiRoom, PLATFORMS, PLATFORM_ORDER } from '../platforms';
 import { useSettings } from '../settings';
 import { useTheme } from '../theme';
@@ -92,6 +94,28 @@ export default function Settings() {
       {HOSTABLE.filter((k) => settings.enabled[k]).map((k) => <RoomField key={k} platform={k} needsFix={fix === k} />)}
       {!HOSTABLE.some((k) => settings.enabled[k]) &&
         <Text style={[ui.rowNote, { color: t.muted }]}>Turn on Zoom, Meet, Teams or Jitsi to host calls from your own room.</Text>}
+
+      <Text style={[ui.section, { color: t.muted }]}>After-call notes</Text>
+      <AiSetup />
+      <View style={[ui.row, { backgroundColor: t.card, borderColor: t.line, flexDirection: 'column', alignItems: 'stretch', gap: 8 }]}>
+        <Text style={[ui.rowTitle, { color: t.ink }]}>Save tasks to</Text>
+        <Text style={[ui.rowNote, { color: t.muted, marginTop: 0 }]}>Krypu remembers the last one you used. You can also set it here.</Text>
+        <View style={ui.chips}>
+          {TASK_TARGETS.map((x) => {
+            const on = settings.taskTarget === x.key;
+            return (
+              <Pressable key={x.key} onPress={() => update({ taskTarget: x.key })}
+                style={[ui.chip, { paddingVertical: 7, paddingHorizontal: 12, borderWidth: 1, borderColor: on ? t.clay : t.line,
+                                   backgroundColor: on ? t.claySoft : t.card }]}>
+                <Text style={[ui.chipText, { color: on ? t.clay : t.muted }]}>{x.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <TextInput value={settings.myEmail} onChangeText={(v) => update({ myEmail: v.trim() })} autoCapitalize="none"
+          keyboardType="email-address" placeholder="Your email, for Email" placeholderTextColor={t.muted}
+          style={{ borderWidth: 1, borderColor: t.line, borderRadius: 12, padding: 10, color: t.ink, fontSize: 15 }} />
+      </View>
 
       <Text style={[ui.section, { color: t.muted }]}>About</Text>
       <Updates />
