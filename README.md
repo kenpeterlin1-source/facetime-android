@@ -59,13 +59,50 @@ Treat saved links as secrets: anyone holding one can join.
 5. Per-person **"Text to join"** — SMS intent with the link (see above). Core, not optional.
 6. Optional: home-screen widget or quick-settings tile for the most-used link.
 
-No accounts, no backend, no sync — links live in local storage on each Android phone.
+No accounts, no backend. ~~Links live in local storage~~ → superseded 2026-09-24: links live on the contact card (see Update below).
 
 ## To verify before building
 - Do FaceTime links really persist indefinitely, or do they rotate? (Design depends on this.)
 - Does a Custom Tab carry camera/mic permission cleanly, or does Chrome re-prompt every join?
 - Will Chrome claim `facetime.apple.com` via Digital Asset Links and win the intent filter?
 - Does the fragment survive the Android intent → Custom Tab handoff intact?
+
+## Update 2026-09-24: ask for links, and keep them in Contacts (Ken's decisions)
+
+### 1. "Ask for their link" - getting the link in the first place
+Today someone has to know to make a link and send it. The app does the asking:
+- **Ask for link** → pick a contact → choose their mobile number → opens an SMS with a pre-written message:
+  > Hi! So I can FaceTime you from my Android phone, could you send me a FaceTime link? On your iPhone:
+  > open **FaceTime** → **Create Link** → **Add Name** (e.g. "Ken for Mom") → **Messages** → send it to me.
+  > It's a one-time thing - I'll save it and use it every time. Thanks!
+- The app remembers **who it asked and when** ("pending"), so when a link arrives it can suggest that person.
+- Message text is editable per send; the default lives in settings.
+
+### 2. Links live in Android Contacts (the contact is the source of truth)
+Each FaceTime link is written to that person's **contact card** as a **website/URL entry labelled "FaceTime"**
+(`ContactsContract.CommonDataKinds.Website`, via `expo-contacts` `urlAddresses`).
+- **The app's main list = every contact that has a `facetime.apple.com/join` URL.** No separate app database.
+- The **phone number for "Text to join"** comes from the same contact - nothing entered twice.
+- Survives an app reinstall or a new phone (if contacts sync to the Google account), and the link is also
+  reachable from the normal Contacts app: tapping it opens Chrome → FaceTime.
+- Store the **full URL including the `#` fragment**, and check it on read-back (see "Critical implementation detail").
+- Trade-off, accepted: the link then sits in the Google account's contacts. Anyone who can see those contacts
+  could join that person's FaceTime link (the host still has to admit them).
+- Permissions: `READ_CONTACTS` + `WRITE_CONTACTS`.
+
+### 3. Getting a link from Messages into the app (Android 12+ reality)
+We can't verify `facetime.apple.com` as an App Link (Apple owns it), so on Android 12+ **tapping a FaceTime link
+opens Chrome, not the app**, unless the user turns on "Open supported links" for the app by hand. So support all three:
+1. **Share sheet** (most reliable): long-press the link in Messages → Share → *FaceTime Links* (`ACTION_SEND` text/plain).
+2. **Clipboard check** on opening the app: "Found a FaceTime link - save it to Mom?" (pre-selects the pending contact).
+3. **Paste** field on the Add screen.
+The app also offers a one-time "Open supported links" setup screen for people who want tap-to-open.
+
+### Revised main flows
+- **Join** (per contact): open the link in a Chrome Custom Tab.
+- **Text to join** (per contact): SMS to the contact's mobile with the link.
+- **Ask for link**: SMS request (above) → pending → save to contact when it arrives.
+- **Fix a link**: if a link stops working, "Ask again" re-sends the request and replaces the URL on the contact.
 
 ## Look and feel
 **Personal styling, not REMAX corporate colours.** This is a household app — warm and plain, nothing
@@ -82,3 +119,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 
 ## Notes
 - 2026-09-23: project opened; use case and design captured. Nothing built yet.
+- 2026-09-24: added "Ask for link" SMS flow and decided links are stored on the Android contact card (URL field, label "FaceTime"); Git repo created, GitHub (public, kenpeterlin1-source) pending sign-in.
