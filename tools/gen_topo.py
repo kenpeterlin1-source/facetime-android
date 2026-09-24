@@ -1,12 +1,12 @@
-# Portrait topo-map background for the app (same recipe as peterlin.com). Writes src/topoPaths.js.
-# Run: python3 tools/gen_topo.py src/topoPaths.js [seed]
+# Portrait topo-map background for the app (same recipe as peterlin.com), with PETERLIN hidden faintly
+# in the terrain. Writes a JS module. Run: python3 tools/gen_topo.py src/topoPaths.js
 import math, random, sys
 sys.setrecursionlimit(20000)
-random.seed(int(sys.argv[2]) if len(sys.argv) > 2 else 11)
-W, H, STEP, NLEV = 1000, 2000, 5, 30
+random.seed(11)
+W, H, STEP, NLEV = 1000, 2000, 2.5, 30
 GX, GY = int(W / STEP), int(H / STEP)
-FLATS = [.85, .3, .5]   # how much the ground is levelled under each word (big KEN, PETERLIN, small KEN)
-RELIEFS = [1.3, .9, 1.3]  # letter height per word, in contour intervals
+FLATS = [.6]   # how much the ground is levelled under each word (big KEN, PETERLIN, small KEN)
+RELIEFS = [1.2]  # letter height per word, in contour intervals
 RELIEF = float(sys.argv[2]) if len(sys.argv) > 2 else 1.3   # letter height, in contour intervals (1.3 => one outline)
 
 # --- terrain (same recipe as before) ---
@@ -22,6 +22,26 @@ def terrain(x, y):
     s = sum(a * vn(g, f, x, y * H / W) for g, f, a in octs)
     return s + sum(h * math.exp(-((x - px) ** 2 + (y - py) ** 2) / (2 * r * r)) for px, py, r, h in peaks)
 
+# --- stroke letters, 220 tall ---
+GL = {
+ "K": (170, [(0,0,0,220), (160,0,8,128), (58,84,165,220)]),
+ "E": (160, [(0,0,0,220), (0,0,150,0), (0,110,122,110), (0,220,150,220)]),
+ "N": (170, [(0,220,0,0), (0,0,168,220), (168,220,168,0)]),
+ "P": (160, [(0,220,0,0), (0,0,100,0), (100,0,140,18), (140,18,156,55), (156,55,140,92), (140,92,100,110), (100,110,0,110)]),
+ "R": (165, [(0,220,0,0), (0,0,100,0), (100,0,140,18), (140,18,156,55), (156,55,140,92), (140,92,100,110), (100,110,0,110), (70,110,162,220)]),
+ "T": (160, [(0,0,160,0), (80,0,80,220)]),
+ "I": (40,  [(20,0,20,220)]),
+ "L": (150, [(0,0,0,220), (0,220,145,220)]),
+}
+def word(text, x0, y0, h, gap=70):
+    s = h / 220; segs = []; x = x0
+    for ch in text:
+        w, ss = GL[ch]
+        segs += [(x + a * s, y0 + b * s, x + c * s, y0 + d * s) for a, b, c, d in ss]
+        x += (w + gap) * s
+    return segs, max(22 * s, 7), (x0, y0, x - gap * s, y0 + h)
+WORDS = [word("PETERLIN", 200, 1600, 80)]    # lower part of the screen, below the list
+
 def dseg(px, py, s):
     ax, ay, bx, by = s; dx, dy = bx - ax, by - ay
     t = max(0, min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)))
@@ -32,7 +52,22 @@ def bbox_d(x, y, b):
 
 base = [[terrain(i / GX, j / GY) for i in range(GX + 1)] for j in range(GY + 1)]
 lo = min(map(min, base)); hi = max(map(max, base)); iv = (hi - lo) / NLEV
-vals = base
+# each word sits on gently flattened ground exactly between two contour levels
+pads = []
+for segs, R, b in WORDS:
+    cx, cy = (b[0] + b[2]) / 2, (b[1] + b[3]) / 2
+    c = base[int(cy / STEP)][int(cx / STEP)]
+    pads.append((segs, R, b, lo + iv * round((c - lo) / iv), FLATS[len(pads)], RELIEFS[len(pads)]))
+def value(i, j):
+    x, y = i * STEP, j * STEP; v = base[j][i]
+    for segs, R, b, target, FLAT, RELIEF in pads:
+        m = math.exp(-(bbox_d(x, y, b) / 60) ** 2) * FLAT        # flatten weight
+        if m < .01: continue
+        v = v * (1 - m) + target * m
+        d = min(dseg(x, y, sg) for sg in segs) + R * .9 * (vn(octs[2][0], 12, x / W, y / W) - .5)   # ragged edges
+        v += m / FLAT * RELIEF * iv / (1 + math.exp((d - R) / (R * .45)))
+    return v
+vals = [[value(i, j) for i in range(GX + 1)] for j in range(GY + 1)]
 levels = [lo + iv * (k + .5) for k in range(NLEV + 2)]
 
 def contour(t):
