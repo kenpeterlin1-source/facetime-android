@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "facetime-web",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": [
+        "-c",
+        "cd ~/personal/facetime-android && npx expo start --web --port 8093"
+      ],
+      "port": 8093
+    }
+  ]
+}
