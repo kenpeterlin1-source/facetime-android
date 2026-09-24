@@ -1,4 +1,10 @@
-# FaceTime for Android
+# Krypu
+
+A contacts-first video-call launcher for Android: FaceTime links, WhatsApp, Zoom, Meet, Teams, Slack and Jitsi,
+one tap per person. Started as "FaceTime for Android" (design below). Named 2026-09-24 - a made-up word, a nod to
+cryptids (Scott Sigler's *Nocturnal*) and "KePu".
+
+## Original design: FaceTime for Android
 
 Let the two Android phones in the house join FaceTime calls with the three Apple phones, in one tap,
 without anyone re-sharing a link every time.
@@ -135,7 +141,7 @@ The app reads the phone's contacts and, for each person, detects every video pla
   queries `ContactsContract.Data` by mimetype and fires `ACTION_VIEW` on the data URI. Built in v1.1, not v1.
 - Nudge channel per person: SMS or WhatsApp message (`https://wa.me/<number>?text=…`); default SMS for US numbers,
   WhatsApp for international numbers.
-- Name: "FaceTime Links" is a placeholder (Apple trademark, and no longer describes the app) - rename pending.
+- Name: **Krypu** (decided 2026-09-24; replaces the placeholder "FaceTime Links").
 
 ### Phasing
 - **v1:** contacts-first list + FaceTime end to end (ask, save to contact, join, nudge). Other chips shown only if
@@ -163,4 +169,5 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: direction changed to a contacts-first, multi-platform video launcher (FaceTime first; WhatsApp via native module in v1.1).
 - 2026-09-24: added Teams and Slack (URL-based) to the platform list (Ken).
 - 2026-09-24: added Jitsi, including "Start a Jitsi room" for anyone as the no-app fallback (Ken).
-- 2026-09-24: app will get a web page at **peterlin.com/<appname>** (served from the peterlin.com Cloudflare site, `site/<appname>/`). APK downloads stay on apps.peterlin.com. Name pending (leading candidate: Kepuvo).
+- 2026-09-24: app will get a web page at **peterlin.com/<appname>** (served from the peterlin.com Cloudflare site, `site/<appname>/`). APK downloads stay on apps.peterlin.com. Name: Krypu → peterlin.com/krypu.
+- 2026-09-24: **renamed to Krypu** (package com.peterlin.krypu). Checked: no existing app by that name; krypu.com and krypu.app unregistered.
