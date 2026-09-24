@@ -1,7 +1,7 @@
 // Home: your contacts, filtered to people you can video-call on the apps you use.
 import { Redirect, router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { AppState, Modal, Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { AppState, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { HOSTABLE } from '../myRooms';
 import { PLATFORMS } from '../platforms';
 import { SAMPLE_CONTACTS } from '../sampleContacts';
@@ -9,7 +9,7 @@ import { useSettings } from '../settings';
 import { useTheme } from '../theme';
 import { Chip, Screen, ui, UpdateBanner } from '../ui';
 
-function Person({ person, t, onPress, picking, picked, broken }) {
+function Person({ person, t, onPress, picking, picked, broken, note }) {
   const none = person.platforms.length === 0;
   return (
     <Pressable onPress={onPress}
@@ -24,6 +24,7 @@ function Person({ person, t, onPress, picking, picked, broken }) {
             ? <Text style={[styles.sub, { color: t.muted }]}>No video links yet</Text>
             : person.platforms.map((p) => <Chip key={p} platform={p} t={t} broken={broken.has(`${person.id}:${p}`)} />)}
         </View>
+        {!!note && <Text style={[styles.sub, { color: t.muted, fontStyle: 'italic' }]} numberOfLines={1}>{note}</Text>}
       </View>
       {picking
         ? <View style={[styles.check, { borderColor: picked ? t.moss : t.line, backgroundColor: picked ? t.moss : 'transparent' }]}>
@@ -34,13 +35,35 @@ function Person({ person, t, onPress, picking, picked, broken }) {
   );
 }
 
+// Private note about a person, saved as you type (closing the sheet can skip onBlur on Android).
+function PersonNote({ person, t }) {
+  const { settings, update } = useSettings();
+  const [draft, setDraft] = useState(settings.notes[person.id] ?? '');
+  const change = (v) => {
+    setDraft(v);
+    update((s) => ({ ...s, notes: { ...s.notes, [person.id]: v.trim() || undefined } }));
+  };
+  return (
+    <TextInput value={draft} onChangeText={change} multiline
+      placeholder="Best time to call, time zone, kids' names…" placeholderTextColor={t.muted}
+      style={[styles.note, { backgroundColor: t.card, borderColor: t.line, color: t.ink }]} />
+  );
+}
+
 function PlatformSheet({ person, rooms, t, onClose, onLaunch }) {
   if (!person) return null;
+  const voice = [
+    person.phone && { key: 'phone', label: 'Phone call', how: `Opens your dialer with ${person.phone}.`, tone: 'clay' },
+    person.phone && person.platforms.includes('whatsapp') && { key: 'whatsapp-voice', label: 'WhatsApp voice call', how: 'Starts a WhatsApp voice call.', tone: 'sage' },
+  ].filter(Boolean);
   return (
     <Modal transparent animationType="fade" visible onRequestClose={onClose}>
       <Pressable style={[styles.scrim, { backgroundColor: t.scrim }]} onPress={onClose}>
         <Pressable style={[styles.sheet, { backgroundColor: t.paper, borderColor: t.line }]}>
+          <ScrollView contentContainerStyle={styles.sheetBody} keyboardShouldPersistTaps="handled">
           <Text style={[styles.sheetTitle, { color: t.ink }]}>Call {person.name}</Text>
+          {!!person.phone && <Text style={[styles.sub, { color: t.muted, marginTop: -8 }]}>{person.phone}</Text>}
+          <Text style={[ui.section, { color: t.muted }]}>Video</Text>
           {person.platforms.length === 0 ? (
             <>
               <Text style={[ui.lede, { color: t.muted }]}>
@@ -77,9 +100,22 @@ function PlatformSheet({ person, rooms, t, onClose, onLaunch }) {
               </Pressable>
             );
           })}
+          {voice.length > 0 && <Text style={[ui.section, { color: t.muted }]}>Voice</Text>}
+          {voice.map((v) => (
+            <Pressable key={v.key} style={[styles.option, { backgroundColor: t.card, borderColor: t.line }]}>
+              <Text style={[styles.voiceIcon, { color: t[v.tone] }]}>☏</Text>
+              <View style={styles.cardBody}>
+                <Text style={[styles.name, { color: t.ink }]}>{v.label}</Text>
+                <Text style={[styles.sub, { color: t.muted }]}>{v.how}</Text>
+              </View>
+            </Pressable>
+          ))}
+          <Text style={[ui.section, { color: t.muted }]}>Your notes</Text>
+          <PersonNote person={person} t={t} />
           <Pressable onPress={onClose} style={styles.cancel}>
-            <Text style={[styles.cancelText, { color: t.muted }]}>Cancel</Text>
+            <Text style={[styles.cancelText, { color: t.muted }]}>Close</Text>
           </Pressable>
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
@@ -114,7 +150,7 @@ function FixTheirLink({ fix, t, onClose, onFixed }) {
   return (
     <Modal transparent animationType="fade" visible onRequestClose={onClose}>
       <Pressable style={[styles.scrim, { backgroundColor: t.scrim }]} onPress={onClose}>
-        <Pressable style={[styles.sheet, { backgroundColor: t.paper, borderColor: t.line }]}>
+        <Pressable style={[styles.sheet, styles.sheetBody, { backgroundColor: t.paper, borderColor: t.line }]}>
           <Text style={[styles.sheetTitle, { color: t.ink }]}>Fix {fix.person.name}'s {label} link</Text>
           <Text style={[ui.lede, { color: t.muted }]}>
             Links can stop working if they're deleted or expire. Ask {fix.person.name} for a new one, or paste one you already have.
@@ -247,7 +283,7 @@ export default function Home() {
       )}
       {people.map((p) => (
         <Person key={p.id} person={p} t={t} picking={picking} picked={group.has(p.id)}
-          broken={broken} onPress={() => (picking ? toggle(p.id) : setSelected(p))} />
+          broken={broken} note={settings.notes[p.id]} onPress={() => (picking ? toggle(p.id) : setSelected(p))} />
       ))}
       {people.length === 0 && <Text style={[ui.lede, { color: t.muted }]}>No one matches “{query}”.</Text>}
       <PlatformSheet person={selected} rooms={rooms} t={t} onClose={() => setSelected(null)} onLaunch={launch} />
@@ -278,8 +314,11 @@ const styles = StyleSheet.create({
   rowGap: { flexDirection: 'row', gap: 8 },
   half: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center' },
   scrim: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { padding: 20, paddingBottom: 32, gap: 10, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1,
+  sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, maxHeight: '88%',
            maxWidth: 560, width: '100%', alignSelf: 'center' },
+  sheetBody: { padding: 20, paddingBottom: 32, gap: 10 },
+  voiceIcon: { fontSize: 18, width: 12, textAlign: 'center' },
+  note: { minHeight: 70, borderWidth: 1, borderRadius: 14, padding: 12, fontSize: 15, textAlignVertical: 'top' },
   sheetTitle: { fontSize: 24, fontWeight: '700', fontFamily: 'Georgia', marginBottom: 4 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1 },
   mine: { borderStyle: 'dashed', borderWidth: 1.5 },

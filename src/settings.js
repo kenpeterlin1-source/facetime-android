@@ -11,6 +11,8 @@ export const DEFAULTS = {
   enabled: Object.fromEntries(PLATFORM_ORDER.map((k) => [k, ['facetime', 'whatsapp', 'jitsi'].includes(k)])),
   // your own permanent rooms, used to invite people (null = not set up)
   myRooms: { zoom: null, meet: null, teams: null, jitsi: null },
+  // your private notes per person, keyed by contact id (kept in Krypu, not written to the contact)
+  notes: {},
 };
 
 const SettingsContext = createContext(null);
@@ -23,7 +25,7 @@ export function SettingsProvider({ children }) {
       .then((raw) => {
         const saved = raw ? JSON.parse(raw) : {};
         setSettings({ ...DEFAULTS, ...saved, enabled: { ...DEFAULTS.enabled, ...saved.enabled },
-                      myRooms: { ...DEFAULTS.myRooms, ...saved.myRooms } });
+                      myRooms: { ...DEFAULTS.myRooms, ...saved.myRooms }, notes: { ...saved.notes } });
       })
       .catch(() => setSettings(DEFAULTS));
   }, []);

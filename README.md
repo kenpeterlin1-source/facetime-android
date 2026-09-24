@@ -190,6 +190,19 @@ launched a call (AppState → active), the home screen asks **"Did your <app> ca
     first time) or **Paste a new link** (saved over the old one on their contact).
 - Later: count failures per link and suggest "Ask again" automatically after two.
 
+### Voice calls and notes - 2026-09-24 (Ken)
+Krypu becomes the one place to reach someone ("contact hub"), not only video.
+- Person sheet sections: **Video** (their platforms) · **Or invite to your room** · **Voice** · **Your notes**.
+- **Voice:** *Phone call* → `tel:` / ACTION_DIAL (opens the dialer with the number; no permission needed). One-tap
+  direct dialing would need CALL_PHONE - not worth it. *WhatsApp voice call* for WhatsApp contacts (native module, v1.1).
+  Krypu does **not** replace the Phone app: incoming calls and call history stay in the dialer (default-dialer role and
+  call-log access are restricted on Android).
+- **Notes:** private per-person notes, saved as you type in Krypu's own storage (`settings.notes[contactId]`), shown as
+  a one-line preview on the person's card. Not written to the Google contact (no sync) unless we add an explicit
+  "Copy to contact" later.
+- Idea (not built): per-person **time zone** from the number's country code or a note → "It's 11:40 pm for Giulia"
+  on the card, and a warning before calling at night.
+
 ## Look and feel
 **Personal styling, not REMAX corporate colours.** This is a household app — warm and plain, nothing
 that looks like a work tool.
@@ -218,3 +231,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: added "your rooms": host with your own permanent Zoom/Meet/Teams/Jitsi room; group calls can use any of them.
 - 2026-09-24: Expo Router; first-run platform picker; Settings (toggles, your rooms, version + update check); in-app update check.
 - 2026-09-24: "did it work?" check after each call; failed links route back to fix them. App now follows ~/projects/_templates/expo-app (update.js from template, scripts/release.sh, extra.releasesRepo).
+- 2026-09-24: added Voice (phone dialer, WhatsApp voice) and private per-person notes.
