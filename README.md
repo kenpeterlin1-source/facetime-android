@@ -180,6 +180,16 @@ The reverse of "ask for their link", and it works for people who have never save
 - Settings are stored with AsyncStorage (key `krypu.settings.v1`).
 - Screens use **Expo Router** (`src/app/`: `_layout.js`, `index.js`, `welcome.js`, `settings.js`).
 
+### When a link stops working - 2026-09-24 (Ken)
+Android can't tell whether a Zoom/Meet/FaceTime call actually connected, so when you **come back to Krypu** after it
+launched a call (AppState → active), the home screen asks **"Did your <app> call with <name> work?"**
+- **Yes** → nothing. **Link didn't work** →
+  - **your own room:** opens Settings with that room highlighted ("This link didn't work last time. Paste a new one");
+    for Jitsi, "Make a new Jitsi room".
+  - **their link:** the chip turns **⚠** and a sheet offers **Ask for a new link** (same SMS/WhatsApp request as
+    first time) or **Paste a new link** (saved over the old one on their contact).
+- Later: count failures per link and suggest "Ask again" automatically after two.
+
 ## Look and feel
 **Personal styling, not REMAX corporate colours.** This is a household app — warm and plain, nothing
 that looks like a work tool.
@@ -207,3 +217,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: web page built at peterlin-com-website/site/krypu/ (→ peterlin.com/krypu). "Ask for link" texts should link to https://peterlin.com/krypu/#<platform> for the steps.
 - 2026-09-24: added "your rooms": host with your own permanent Zoom/Meet/Teams/Jitsi room; group calls can use any of them.
 - 2026-09-24: Expo Router; first-run platform picker; Settings (toggles, your rooms, version + update check); in-app update check.
+- 2026-09-24: "did it work?" check after each call; failed links route back to fix them. App now follows ~/projects/_templates/expo-app (update.js from template, scripts/release.sh, extra.releasesRepo).

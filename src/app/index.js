@@ -1,7 +1,7 @@
 // Home: your contacts, filtered to people you can video-call on the apps you use.
 import { Redirect, router } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { AppState, Modal, Platform, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { HOSTABLE } from '../myRooms';
 import { PLATFORMS } from '../platforms';
 import { SAMPLE_CONTACTS } from '../sampleContacts';
@@ -9,7 +9,7 @@ import { useSettings } from '../settings';
 import { useTheme } from '../theme';
 import { Chip, Screen, ui, UpdateBanner } from '../ui';
 
-function Person({ person, t, onPress, picking, picked }) {
+function Person({ person, t, onPress, picking, picked, broken }) {
   const none = person.platforms.length === 0;
   return (
     <Pressable onPress={onPress}
@@ -22,7 +22,7 @@ function Person({ person, t, onPress, picking, picked }) {
         <View style={ui.chips}>
           {none
             ? <Text style={[styles.sub, { color: t.muted }]}>No video links yet</Text>
-            : person.platforms.map((p) => <Chip key={p} platform={p} t={t} />)}
+            : person.platforms.map((p) => <Chip key={p} platform={p} t={t} broken={broken.has(`${person.id}:${p}`)} />)}
         </View>
       </View>
       {picking
@@ -34,7 +34,7 @@ function Person({ person, t, onPress, picking, picked }) {
   );
 }
 
-function PlatformSheet({ person, rooms, t, onClose }) {
+function PlatformSheet({ person, rooms, t, onClose, onLaunch }) {
   if (!person) return null;
   return (
     <Modal transparent animationType="fade" visible onRequestClose={onClose}>
@@ -53,7 +53,7 @@ function PlatformSheet({ person, rooms, t, onClose }) {
           ) : person.platforms.map((p) => {
             const { label, tone, how } = PLATFORMS[p];
             return (
-              <Pressable key={p} style={[styles.option, { backgroundColor: t.card, borderColor: t.line }]}>
+              <Pressable key={p} onPress={() => onLaunch(p, false)} style={[styles.option, { backgroundColor: t.card, borderColor: t.line }]}>
                 <View style={[ui.dot, { backgroundColor: t[tone] }]} />
                 <View style={styles.cardBody}>
                   <Text style={[styles.name, { color: t.ink }]}>{label}</Text>
@@ -66,7 +66,7 @@ function PlatformSheet({ person, rooms, t, onClose }) {
           {rooms.map((k) => {
             const { label, tone } = PLATFORMS[k];
             return (
-              <Pressable key={`mine-${k}`} style={[styles.option, styles.mine, { borderColor: t[tone] }]}>
+              <Pressable key={`mine-${k}`} onPress={() => onLaunch(k, true)} style={[styles.option, styles.mine, { borderColor: t[tone] }]}>
                 <View style={[ui.dot, { backgroundColor: t[tone] }]} />
                 <View style={styles.cardBody}>
                   <Text style={[styles.name, { color: t.ink }]}>Your {label} room</Text>
@@ -86,6 +86,58 @@ function PlatformSheet({ person, rooms, t, onClose }) {
   );
 }
 
+// Shown when you come back to Krypu after starting a call: did the link work?
+function CallCheck({ call, t, onWorked, onFailed }) {
+  const { label } = PLATFORMS[call.platform];
+  return (
+    <View style={[styles.rooms, { backgroundColor: t.card, borderColor: t.clay }]}>
+      <Text style={[styles.name, { color: t.ink }]}>
+        Did your {label} call with {call.person.name} work?
+      </Text>
+      <View style={styles.rowGap}>
+        <Pressable onPress={onWorked} style={[styles.half, { backgroundColor: t.sageSoft }]}>
+          <Text style={[ui.primaryText, { color: t.sage }]}>Yes, it worked</Text>
+        </Pressable>
+        <Pressable onPress={onFailed} style={[styles.half, { backgroundColor: t.claySoft }]}>
+          <Text style={[ui.primaryText, { color: t.clay }]}>Link didn't work</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
+// Their link failed: ask them for a new one, or paste one you already have.
+function FixTheirLink({ fix, t, onClose, onFixed }) {
+  const [draft, setDraft] = useState('');
+  if (!fix) return null;
+  const { label } = PLATFORMS[fix.platform];
+  return (
+    <Modal transparent animationType="fade" visible onRequestClose={onClose}>
+      <Pressable style={[styles.scrim, { backgroundColor: t.scrim }]} onPress={onClose}>
+        <Pressable style={[styles.sheet, { backgroundColor: t.paper, borderColor: t.line }]}>
+          <Text style={[styles.sheetTitle, { color: t.ink }]}>Fix {fix.person.name}'s {label} link</Text>
+          <Text style={[ui.lede, { color: t.muted }]}>
+            Links can stop working if they're deleted or expire. Ask {fix.person.name} for a new one, or paste one you already have.
+          </Text>
+          <Pressable onPress={onFixed} style={[ui.primary, { backgroundColor: t.clay }]}>
+            <Text style={[ui.primaryText, { color: t.onClay }]}>Ask for a new link</Text>
+          </Pressable>
+          <TextInput value={draft} onChangeText={setDraft} placeholder={`Paste a new ${label} link`} placeholderTextColor={t.muted}
+            autoCapitalize="none" style={[styles.search, { backgroundColor: t.card, borderColor: t.line, color: t.ink }]} />
+          {!!draft.trim() && (
+            <Pressable onPress={onFixed} style={[ui.primary, { backgroundColor: t.card, borderWidth: 1, borderColor: t.clay }]}>
+              <Text style={[ui.primaryText, { color: t.clay }]}>Save to {fix.person.name}'s contact</Text>
+            </Pressable>
+          )}
+          <Pressable onPress={onClose} style={styles.cancel}>
+            <Text style={[styles.cancelText, { color: t.muted }]}>Not now</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 export default function Home() {
   const t = useTheme();
   const { settings } = useSettings();
@@ -94,6 +146,28 @@ export default function Home() {
   const [selected, setSelected] = useState(null);
   const [picking, setPicking] = useState(false);
   const [group, setGroup] = useState(new Set());
+  const [call, setCall] = useState(null);        // the last call Krypu started: {person, platform, mine, back}
+  const [fix, setFix] = useState(null);          // their link that failed, being fixed
+  const [broken, setBroken] = useState(new Set()); // "<contactId>:<platform>" links reported as not working
+
+  // Ask "did it work?" once you come back to Krypu from the call app (right away on web, where nothing is launched)
+  useEffect(() => {
+    if (!call || call.back) return;
+    if (Platform.OS === 'web') { setCall({ ...call, back: true }); return; }
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') setCall((c) => c && { ...c, back: true }); });
+    return () => sub.remove();
+  }, [call]);
+
+  const launch = (platform, mine) => { setCall({ person: selected, platform, mine, back: false }); setSelected(null); };
+  const failed = () => {
+    const c = call; setCall(null);
+    if (c.mine) router.push({ pathname: '/settings', params: { fix: c.platform } });
+    else { setBroken((b) => new Set(b).add(`${c.person.id}:${c.platform}`)); setFix(c); }
+  };
+  const fixed = () => {
+    setBroken((b) => { const n = new Set(b); n.delete(`${fix.person.id}:${fix.platform}`); return n; });
+    setFix(null);
+  };
 
   const enabled = settings?.enabled ?? {};
   const rooms = HOSTABLE.filter((k) => enabled[k] && settings?.myRooms[k]);
@@ -140,6 +214,7 @@ export default function Home() {
         )}
       </View>
       {!picking && <UpdateBanner />}
+      {!picking && call?.back && <CallCheck call={call} t={t} onWorked={() => setCall(null)} onFailed={failed} />}
       {picking
         ? <Text style={[ui.lede, { color: t.muted }]}>Pick people, then choose which of your rooms to use. Each of them gets the link by text or WhatsApp.</Text>
         : <View style={[styles.rooms, { backgroundColor: t.card, borderColor: t.line }]}>
@@ -172,10 +247,11 @@ export default function Home() {
       )}
       {people.map((p) => (
         <Person key={p.id} person={p} t={t} picking={picking} picked={group.has(p.id)}
-          onPress={() => (picking ? toggle(p.id) : setSelected(p))} />
+          broken={broken} onPress={() => (picking ? toggle(p.id) : setSelected(p))} />
       ))}
       {people.length === 0 && <Text style={[ui.lede, { color: t.muted }]}>No one matches “{query}”.</Text>}
-      <PlatformSheet person={selected} rooms={rooms} t={t} onClose={() => setSelected(null)} />
+      <PlatformSheet person={selected} rooms={rooms} t={t} onClose={() => setSelected(null)} onLaunch={launch} />
+      <FixTheirLink fix={fix} t={t} onClose={() => setFix(null)} onFixed={fixed} />
     </Screen>
   );
 }
@@ -199,6 +275,8 @@ const styles = StyleSheet.create({
   rooms: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10 },
   groupBtn: { padding: 11, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center' },
   groupText: { fontSize: 15, fontWeight: '600' },
+  rowGap: { flexDirection: 'row', gap: 8 },
+  half: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center' },
   scrim: { flex: 1, justifyContent: 'flex-end' },
   sheet: { padding: 20, paddingBottom: 32, gap: 10, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1,
            maxWidth: 560, width: '100%', alignSelf: 'center' },

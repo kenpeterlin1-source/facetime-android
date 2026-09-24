@@ -20,11 +20,12 @@ export function Screen({ children, footer }) {
   );
 }
 
-export function Chip({ platform, t }) {
+// Platform chip; `broken` = the link was reported as not working and needs fixing
+export function Chip({ platform, t, broken }) {
   const { label, tone } = PLATFORMS[platform];
   return (
-    <View style={[ui.chip, { backgroundColor: t[`${tone}Soft`] }]}>
-      <Text style={[ui.chipText, { color: t[tone] }]}>{label}</Text>
+    <View style={[ui.chip, { backgroundColor: t[`${tone}Soft`] }, broken && { borderWidth: 1, borderColor: t.clay }]}>
+      <Text style={[ui.chipText, { color: broken ? t.clay : t[tone] }]}>{broken ? `⚠ ${label}` : label}</Text>
     </View>
   );
 }

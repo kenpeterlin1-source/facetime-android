@@ -38,6 +38,9 @@
       ],
       "expo-router"
     ],
-    "scheme": "krypu"
+    "scheme": "krypu",
+    "extra": {
+      "releasesRepo": "kenpeterlin1-source/krypu"
+    }
   }
 }
