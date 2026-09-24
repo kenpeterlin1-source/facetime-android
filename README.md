@@ -166,6 +166,20 @@ The reverse of "ask for their link", and it works for people who have never save
 - **Group calls** use any of your ready rooms (Zoom, Meet, Teams or Jitsi), not just Jitsi: pick people → tap the room.
 - Auto-creating Zoom/Meet/Teams rooms via their APIs would need sign-in (OAuth) - not planned; pasting once is enough.
 
+### First run, Settings, updates - 2026-09-24
+- **Welcome screen (first run):** "Which video apps do you use?" - a toggle per platform (default on: FaceTime, WhatsApp,
+  Jitsi). Krypu only shows platforms you turned on. Later: pre-tick apps that are actually installed (Android
+  `<queries>` + PackageManager for us.zoom.videomeetings, com.google.android.apps.tachyon, com.microsoft.teams,
+  com.Slack, org.jitsi.meet, com.whatsapp).
+- **Settings (⚙︎ on home):** the same toggles; "Your rooms" (paste Zoom/Meet/Teams links, checked against the platform;
+  Jitsi room auto-created when Jitsi is on); About → version + **Check for updates**.
+- **Update check** (`src/update.js`, same approach as DropFile): on launch, reads
+  `github.com/kenpeterlin1-source/krypu/releases/latest/download/latest.json`; if its versionCode is newer than the
+  installed one (app.json `android.versionCode`), shows "Update available" → opens the APK so Android installs it over
+  the old one. Goes live once the repo is renamed to `krypu` and the first release is published.
+- Settings are stored with AsyncStorage (key `krypu.settings.v1`).
+- Screens use **Expo Router** (`src/app/`: `_layout.js`, `index.js`, `welcome.js`, `settings.js`).
+
 ## Look and feel
 **Personal styling, not REMAX corporate colours.** This is a household app — warm and plain, nothing
 that looks like a work tool.
@@ -192,3 +206,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: added group Jitsi calls (multi-select). Snapchat/Instagram: later, open-chat tier only.
 - 2026-09-24: web page built at peterlin-com-website/site/krypu/ (→ peterlin.com/krypu). "Ask for link" texts should link to https://peterlin.com/krypu/#<platform> for the steps.
 - 2026-09-24: added "your rooms": host with your own permanent Zoom/Meet/Teams/Jitsi room; group calls can use any of them.
+- 2026-09-24: Expo Router; first-run platform picker; Settings (toggles, your rooms, version + update check); in-app update check.

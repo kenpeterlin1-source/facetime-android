@@ -16,10 +16,12 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "package": "com.peterlin.krypu"
+      "package": "com.peterlin.krypu",
+      "versionCode": 1
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
     },
     "plugins": [
       [
@@ -33,7 +35,9 @@
             "image": "./assets/splash-icon-dark.png"
           }
         }
-      ]
-    ]
+      ],
+      "expo-router"
+    ],
+    "scheme": "krypu"
   }
 }
