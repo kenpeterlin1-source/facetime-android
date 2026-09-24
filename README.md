@@ -163,3 +163,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: direction changed to a contacts-first, multi-platform video launcher (FaceTime first; WhatsApp via native module in v1.1).
 - 2026-09-24: added Teams and Slack (URL-based) to the platform list (Ken).
 - 2026-09-24: added Jitsi, including "Start a Jitsi room" for anyone as the no-app fallback (Ken).
+- 2026-09-24: app will get a web page at **peterlin.com/<appname>** (served from the peterlin.com Cloudflare site, `site/<appname>/`). APK downloads stay on apps.peterlin.com. Name pending (leading candidate: Kepuvo).
