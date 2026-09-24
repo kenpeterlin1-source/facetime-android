@@ -13,6 +13,8 @@ export const DEFAULTS = {
   myRooms: { zoom: null, meet: null, teams: null, jitsi: null },
   // your private notes per person, keyed by contact id (kept in Krypu, not written to the contact)
   notes: {},
+  // time-zone overrides per contact id, when the guess from the phone number is wrong
+  tz: {},
 };
 
 const SettingsContext = createContext(null);
@@ -25,7 +27,7 @@ export function SettingsProvider({ children }) {
       .then((raw) => {
         const saved = raw ? JSON.parse(raw) : {};
         setSettings({ ...DEFAULTS, ...saved, enabled: { ...DEFAULTS.enabled, ...saved.enabled },
-                      myRooms: { ...DEFAULTS.myRooms, ...saved.myRooms }, notes: { ...saved.notes } });
+                      myRooms: { ...DEFAULTS.myRooms, ...saved.myRooms }, notes: { ...saved.notes }, tz: { ...saved.tz } });
       })
       .catch(() => setSettings(DEFAULTS));
   }, []);

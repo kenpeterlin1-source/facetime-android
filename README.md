@@ -200,8 +200,10 @@ Krypu becomes the one place to reach someone ("contact hub"), not only video.
 - **Notes:** private per-person notes, saved as you type in Krypu's own storage (`settings.notes[contactId]`), shown as
   a one-line preview on the person's card. Not written to the Google contact (no sync) unless we add an explicit
   "Copy to contact" later.
-- Idea (not built): per-person **time zone** from the number's country code or a note → "It's 11:40 pm for Giulia"
-  on the card, and a warning before calling at night.
+- **Time zones (built 2026-09-24):** `src/timezones.js` guesses each person's zone from their number (country code;
+  North American area codes, e.g. 303/720 → Denver). Their local time shows on the card ("☾ 1:02 AM in Rome" in clay
+  when it's 10 pm-7 am there); the sheet warns "It's late for Giulia. Maybe send a message first, or call tomorrow."
+  Wrong guess → **Change** picks another zone (saved in `settings.tz`). Unknown numbers show no time.
 
 ## Look and feel
 **Personal styling, not REMAX corporate colours.** This is a household app — warm and plain, nothing
@@ -232,3 +234,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: Expo Router; first-run platform picker; Settings (toggles, your rooms, version + update check); in-app update check.
 - 2026-09-24: "did it work?" check after each call; failed links route back to fix them. App now follows ~/projects/_templates/expo-app (update.js from template, scripts/release.sh, extra.releasesRepo).
 - 2026-09-24: added Voice (phone dialer, WhatsApp voice) and private per-person notes.
+- 2026-09-24: added local time per person (guessed from the number, overridable) with a late-night warning.

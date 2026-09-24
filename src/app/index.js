@@ -7,9 +7,10 @@ import { PLATFORMS } from '../platforms';
 import { SAMPLE_CONTACTS } from '../sampleContacts';
 import { useSettings } from '../settings';
 import { useTheme } from '../theme';
+import { guessZone, localTime, useNow, ZONE_CHOICES, zoneName } from '../timezones';
 import { Chip, Screen, ui, UpdateBanner } from '../ui';
 
-function Person({ person, t, onPress, picking, picked, broken, note }) {
+function Person({ person, t, onPress, picking, picked, broken, note, zone, now }) {
   const none = person.platforms.length === 0;
   return (
     <Pressable onPress={onPress}
@@ -18,7 +19,10 @@ function Person({ person, t, onPress, picking, picked, broken, note }) {
         <Text style={[styles.avatarText, { color: t.clay }]}>{person.name[0]}</Text>
       </View>
       <View style={styles.cardBody}>
-        <Text style={[styles.name, { color: t.ink }]}>{person.name}</Text>
+        <View style={styles.nameRow}>
+          <Text style={[styles.name, styles.flex, { color: t.ink }]}>{person.name}</Text>
+          <LocalTime zone={zone} t={t} now={now} />
+        </View>
         <View style={ui.chips}>
           {none
             ? <Text style={[styles.sub, { color: t.muted }]}>No video links yet</Text>
@@ -32,6 +36,49 @@ function Person({ person, t, onPress, picking, picked, broken, note }) {
           </View>
         : <Text style={[styles.chev, { color: t.muted }]}>›</Text>}
     </Pressable>
+  );
+}
+
+function zoneFor(person, settings) {
+  return settings.tz[person.id] ?? guessZone(person.phone);
+}
+
+// "11:40 PM in Milan" line; moon + clay colour when it's night there
+function LocalTime({ zone, t, now, style }) {
+  if (!zone) return null;
+  const { time, night } = localTime(zone, now);
+  return (
+    <Text style={[styles.sub, { color: night ? t.clay : t.muted }, style]}>
+      {night ? '☾ ' : ''}{time} in {zoneName(zone)}
+    </Text>
+  );
+}
+
+// Time zone row in the sheet: shows the guess, tap to pick another
+function ZonePicker({ person, t }) {
+  const { settings, update } = useSettings();
+  const [open, setOpen] = useState(false);
+  const zone = zoneFor(person, settings);
+  const set = (z) => { update((s) => ({ ...s, tz: { ...s.tz, [person.id]: z } })); setOpen(false); };
+  return (
+    <View style={{ gap: 6 }}>
+      <Pressable onPress={() => setOpen(!open)} hitSlop={6}>
+        <Text style={[styles.sub, { color: t.muted }]}>
+          Time zone: {zone ? zoneName(zone) : 'unknown'}{settings.tz[person.id] ? '' : zone ? ' (from their number)' : ''} ·{' '}
+          <Text style={{ color: t.clay, fontWeight: '700' }}>{open ? 'Done' : 'Change'}</Text>
+        </Text>
+      </Pressable>
+      {open && (
+        <View style={ui.chips}>
+          {ZONE_CHOICES.map((z) => (
+            <Pressable key={z} onPress={() => set(z)}
+              style={[ui.chip, { backgroundColor: z === zone ? t.claySoft : t.card, borderWidth: 1, borderColor: t.line }]}>
+              <Text style={[ui.chipText, { color: z === zone ? t.clay : t.muted }]}>{zoneName(z)}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -51,7 +98,11 @@ function PersonNote({ person, t }) {
 }
 
 function PlatformSheet({ person, rooms, t, onClose, onLaunch }) {
+  const { settings } = useSettings();
+  const now = useNow();
   if (!person) return null;
+  const zone = zoneFor(person, settings);
+  const late = zone && localTime(zone, now).night;
   const voice = [
     person.phone && { key: 'phone', label: 'Phone call', how: `Opens your dialer with ${person.phone}.`, tone: 'clay' },
     person.phone && person.platforms.includes('whatsapp') && { key: 'whatsapp-voice', label: 'WhatsApp voice call', how: 'Starts a WhatsApp voice call.', tone: 'sage' },
@@ -63,6 +114,15 @@ function PlatformSheet({ person, rooms, t, onClose, onLaunch }) {
           <ScrollView contentContainerStyle={styles.sheetBody} keyboardShouldPersistTaps="handled">
           <Text style={[styles.sheetTitle, { color: t.ink }]}>Call {person.name}</Text>
           {!!person.phone && <Text style={[styles.sub, { color: t.muted, marginTop: -8 }]}>{person.phone}</Text>}
+          <LocalTime zone={zone} t={t} now={now} style={{ fontSize: 15, fontWeight: '600' }} />
+          {late && (
+            <View style={[styles.warn, { backgroundColor: t.claySoft }]}>
+              <Text style={[styles.sub, { color: t.clay }]}>
+                It's late for {person.name}. Maybe send a message first, or call tomorrow.
+              </Text>
+            </View>
+          )}
+          <ZonePicker person={person} t={t} />
           <Text style={[ui.section, { color: t.muted }]}>Video</Text>
           {person.platforms.length === 0 ? (
             <>
@@ -177,6 +237,7 @@ function FixTheirLink({ fix, t, onClose, onFixed }) {
 export default function Home() {
   const t = useTheme();
   const { settings } = useSettings();
+  const now = useNow();
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [selected, setSelected] = useState(null);
@@ -283,7 +344,7 @@ export default function Home() {
       )}
       {people.map((p) => (
         <Person key={p.id} person={p} t={t} picking={picking} picked={group.has(p.id)}
-          broken={broken} note={settings.notes[p.id]} onPress={() => (picking ? toggle(p.id) : setSelected(p))} />
+          broken={broken} note={settings.notes[p.id]} zone={zoneFor(p, settings)} now={now} onPress={() => (picking ? toggle(p.id) : setSelected(p))} />
       ))}
       {people.length === 0 && <Text style={[ui.lede, { color: t.muted }]}>No one matches “{query}”.</Text>}
       <PlatformSheet person={selected} rooms={rooms} t={t} onClose={() => setSelected(null)} onLaunch={launch} />
@@ -312,6 +373,8 @@ const styles = StyleSheet.create({
   groupBtn: { padding: 11, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center' },
   groupText: { fontSize: 15, fontWeight: '600' },
   rowGap: { flexDirection: 'row', gap: 8 },
+  nameRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  warn: { padding: 10, borderRadius: 12 },
   half: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center' },
   scrim: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, maxHeight: '88%',
