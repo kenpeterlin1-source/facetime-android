@@ -6,7 +6,7 @@
       "runtimeExecutable": "sh",
       "runtimeArgs": [
         "-c",
-        "cd ~/personal/facetime-android && npx expo start --web --port 8093"
+        "cd ~/personal/krypu && npx expo start --web --port 8093"
       ],
       "port": 8093
     }
