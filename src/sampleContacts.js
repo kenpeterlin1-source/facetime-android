@@ -3,7 +3,7 @@ export const SAMPLE_CONTACTS = [
   { id: '1', name: 'Mom', platforms: ['facetime', 'whatsapp'] },
   { id: '2', name: 'Kitchen iPad', platforms: ['facetime'] },
   { id: '3', name: 'Giulia (Milan)', platforms: ['whatsapp', 'zoom'] },
-  { id: '4', name: 'Uncle Dave', platforms: ['meet'] },
+  { id: '4', name: 'Uncle Dave', platforms: ['meet', 'jitsi'] },
   { id: '5', name: 'Priya', platforms: ['whatsapp', 'meet', 'zoom'] },
   { id: '8', name: 'Alex (work)', platforms: ['teams', 'slack'] },
   { id: '9', name: 'Jordan', platforms: ['facetime', 'teams'] },

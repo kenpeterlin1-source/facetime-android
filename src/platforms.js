@@ -41,9 +41,23 @@ export const PLATFORMS = {
     match: (url) => /^https:\/\/(app\.slack\.com\/huddle\/|[a-z0-9-]+\.slack\.com\/)/i.test(url),
     how: 'Opens your Slack huddle with them in the Slack app.',
   },
+  jitsi: {
+    label: 'Jitsi',
+    tone: 'moss',
+    // no account or app needed for the guest; the app can also create a fresh room for anyone (newJitsiRoom)
+    match: (url) => /^https:\/\/meet\.jit\.si\/[^/?#]+/i.test(url),
+    how: 'Opens a Jitsi room in the browser or Jitsi app. Nothing to install for them.',
+  },
 };
 
-export const PLATFORM_ORDER = ['facetime', 'whatsapp', 'zoom', 'meet', 'teams', 'slack'];
+export const PLATFORM_ORDER = ['facetime', 'whatsapp', 'zoom', 'meet', 'teams', 'slack', 'jitsi'];
+
+// A hard-to-guess room name, e.g. https://meet.jit.si/summit-k7q2m9x4t1b8
+export function newJitsiRoom() {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const id = Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return `https://meet.jit.si/summit-${id}`;
+}
 
 export function detectPlatform(url) {
   return PLATFORM_ORDER.find((key) => PLATFORMS[key].match(url)) ?? null;

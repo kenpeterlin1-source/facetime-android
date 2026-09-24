@@ -9,6 +9,7 @@ const light = {
   sand: '#9A6B1F', sandSoft: '#F6EAD2',
   plum: '#7A5C8C', plumSoft: '#EEE6F2',
   slate: '#4F5B66', slateSoft: '#E6EAEE',
+  moss: '#3F7A74', mossSoft: '#DDEDEB',
   scrim: 'rgba(43, 37, 34, 0.35)',
   topo: 'rgba(176, 74, 47, 0.20)',      // contour lines: clay at low strength
 };
@@ -21,6 +22,7 @@ const dark = {
   sand: '#E2B665', sandSoft: '#362C1D',
   plum: '#C6A8D6', plumSoft: '#2E2533',
   slate: '#AAB6C2', slateSoft: '#262C31',
+  moss: '#8CC7C0', mossSoft: '#1E2E2C',
   scrim: 'rgba(0, 0, 0, 0.55)',
   topo: 'rgba(232, 138, 107, 0.22)',
 };

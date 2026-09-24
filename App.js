@@ -64,6 +64,15 @@ function PlatformSheet({ person, t, onClose }) {
               </Pressable>
             );
           })}
+          <Pressable style={[styles.option, styles.jitsi, { borderColor: t.moss }]}>
+            <View style={[styles.dot, { backgroundColor: t.moss }]} />
+            <View style={styles.cardBody}>
+              <Text style={[styles.name, { color: t.ink }]}>Start a Jitsi room</Text>
+              <Text style={[styles.sub, { color: t.muted }]}>
+                Makes a private room and texts {person.name} the link. Works for anyone, nothing to install.
+              </Text>
+            </View>
+          </Pressable>
           <Pressable onPress={onClose} style={styles.cancel}>
             <Text style={[styles.cancelText, { color: t.muted }]}>Cancel</Text>
           </Pressable>
@@ -138,6 +147,7 @@ const styles = StyleSheet.create({
   sheetTitle: { fontSize: 24, fontWeight: '700', fontFamily: 'Georgia', marginBottom: 4 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1 },
   dot: { width: 12, height: 12, borderRadius: 6 },
+  jitsi: { borderStyle: 'dashed', borderWidth: 1.5 },
   primary: { padding: 14, borderRadius: 14, alignItems: 'center', marginTop: 6 },
   primaryText: { fontSize: 16, fontWeight: '600' },
   cancel: { padding: 12, alignItems: 'center' },
