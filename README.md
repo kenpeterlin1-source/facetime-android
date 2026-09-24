@@ -119,4 +119,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 
 ## Notes
 - 2026-09-23: project opened; use case and design captured. Nothing built yet.
-- 2026-09-24: added "Ask for link" SMS flow and decided links are stored on the Android contact card (URL field, label "FaceTime"); Git repo created, GitHub (public, kenpeterlin1-source) pending sign-in.
+- 2026-09-24: added "Ask for link" SMS flow and decided links are stored on the Android contact card (URL field, label "FaceTime"); on GitHub (public): https://github.com/kenpeterlin1-source/facetime-android
