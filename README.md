@@ -127,7 +127,13 @@ The app reads the phone's contacts and, for each person, detects every video pla
 | **Teams** | URL entry `teams.live.com/meet/…` (personal) or `teams.microsoft.com/l/meetup-join/…` / `/l/call/…` (work) | Open link → Teams app |
 | **Slack** | URL entry: a huddle link (`app.slack.com/huddle/…`) copied from a DM or channel | Open link → Slack app (both people must be in that workspace) |
 | **Jitsi** | URL entry `meet.jit.si/<room>` | Open link → browser or Jitsi app. Also **"Start a Jitsi room"** for *anyone*: the app makes a hard-to-guess room (`meet.jit.si/summit-xxxxxxxxxxxx`), texts them the link, and joins. Guests need no account or app. Note: public meet.jit.si asks the **first person in the room (the host) to sign in** (Google/GitHub/etc.) to start it; guests don't. Self-hosting Jitsi would remove that, not needed for v1 |
-| later | Signal, Telegram, Viber (data rows); Messenger, WeChat, LINE (open chat only) | |
+| later | Signal, Telegram, Viber (data rows); Messenger, WeChat, LINE, **Snapchat, Instagram** (open their chat/profile only - none let another app start a video call) | |
+
+### Group calls (Jitsi)
+**Group call with Jitsi** → pick any number of contacts (including people with no saved links) → **Start room with N
+people**: one fresh room link, sent to each person individually over their nudge channel (SMS or WhatsApp - separate
+messages, not a group thread), then the app opens the room. Jitsi is the only platform where Krypu can *create* the
+call, so it is the group option; FaceTime/Zoom/Meet group calls stay in those apps.
 
 - List shows each person with **platform chips** (FaceTime · WhatsApp · Zoom · Meet); people with none are hidden
   behind a "Show everyone" toggle, where each has **Ask for a link**.
@@ -172,3 +178,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: app will get a web page at **peterlin.com/<appname>** (served from the peterlin.com Cloudflare site, `site/<appname>/`). APK downloads stay on apps.peterlin.com. Name: Krypu → peterlin.com/krypu.
 - 2026-09-24: **renamed to Krypu** (package com.peterlin.krypu). Checked: no existing app by that name; krypu.com and krypu.app unregistered.
 - TODO (end of 2026-09-24 session): rename GitHub repo facetime-android → krypu and local folder ~/personal/facetime-android → ~/personal/krypu (update ~/personal/README.md table + .claude/launch.json path).
+- 2026-09-24: added group Jitsi calls (multi-select). Snapchat/Instagram: later, open-chat tier only.

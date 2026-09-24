@@ -16,10 +16,11 @@ function Chip({ platform, t }) {
   );
 }
 
-function Person({ person, t, onPress }) {
+function Person({ person, t, onPress, picking, picked }) {
   const none = person.platforms.length === 0;
   return (
-    <Pressable onPress={onPress} style={[styles.card, { backgroundColor: t.card, borderColor: t.line }]}>
+    <Pressable onPress={onPress}
+      style={[styles.card, { backgroundColor: t.card, borderColor: picked ? t.moss : t.line }, picked && styles.picked]}>
       <View style={[styles.avatar, { backgroundColor: t.claySoft }]}>
         <Text style={[styles.avatarText, { color: t.clay }]}>{person.name[0]}</Text>
       </View>
@@ -31,7 +32,11 @@ function Person({ person, t, onPress }) {
             : person.platforms.map((p) => <Chip key={p} platform={p} t={t} />)}
         </View>
       </View>
-      <Text style={[styles.chev, { color: t.muted }]}>›</Text>
+      {picking
+        ? <View style={[styles.check, { borderColor: picked ? t.moss : t.line, backgroundColor: picked ? t.moss : 'transparent' }]}>
+            {picked && <Text style={[styles.checkMark, { color: t.paper }]}>✓</Text>}
+          </View>
+        : <Text style={[styles.chev, { color: t.muted }]}>›</Text>}
     </Pressable>
   );
 }
@@ -87,28 +92,54 @@ function Home() {
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [picking, setPicking] = useState(false);
+  const [group, setGroup] = useState(new Set());
+
+  const toggle = (id) => setGroup((g) => { const n = new Set(g); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const stopPicking = () => { setPicking(false); setGroup(new Set()); };
 
   const people = useMemo(() => SAMPLE_CONTACTS.filter((c) =>
-    (showAll || c.platforms.length > 0) && c.name.toLowerCase().includes(query.trim().toLowerCase())), [query, showAll]);
+    (showAll || picking || c.platforms.length > 0) && c.name.toLowerCase().includes(query.trim().toLowerCase())), [query, showAll, picking]);
 
   return (
     <View style={[styles.root, { backgroundColor: t.paper }]}>
       <TopoBackground color={t.topo} />
       <SafeAreaView style={styles.flex}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={[styles.title, { color: t.ink }]}>Who do you want to see?</Text>
+          <Text style={[styles.title, { color: t.ink }]}>{picking ? 'Who should join?' : 'Who do you want to see?'}</Text>
+          {picking
+            ? <Text style={[styles.lede, { color: t.muted }]}>Pick people for a group Jitsi call. Each of them gets the room link by text or WhatsApp.</Text>
+            : <Pressable onPress={() => setPicking(true)} style={[styles.groupBtn, { borderColor: t.moss, backgroundColor: t.card }]}>
+                <Text style={[styles.groupText, { color: t.moss }]}>Group call with Jitsi</Text>
+              </Pressable>}
           <TextInput
             value={query} onChangeText={setQuery} placeholder="Search contacts" placeholderTextColor={t.muted}
             style={[styles.search, { backgroundColor: t.card, borderColor: t.line, color: t.ink }]}
           />
-          <View style={styles.toggleRow}>
+          {!picking && <View style={styles.toggleRow}>
             <Text style={[styles.sub, { color: t.muted }]}>Show everyone, including people without video links</Text>
             <Switch value={showAll} onValueChange={setShowAll} trackColor={{ false: t.line, true: t.clay }} />
-          </View>
-          {people.map((p) => <Person key={p.id} person={p} t={t} onPress={() => setSelected(p)} />)}
+          </View>}
+          {people.map((p) => (
+            <Person key={p.id} person={p} t={t} picking={picking} picked={group.has(p.id)}
+              onPress={() => (picking ? toggle(p.id) : setSelected(p))} />
+          ))}
+          {picking && <View style={{ height: 90 }} />}
           {people.length === 0 && <Text style={[styles.lede, { color: t.muted }]}>No one matches “{query}”.</Text>}
         </ScrollView>
       </SafeAreaView>
+      {picking && (
+        <View style={[styles.bar, { backgroundColor: t.paper, borderColor: t.line }]}>
+          <Pressable onPress={stopPicking} style={styles.barCancel}>
+            <Text style={[styles.cancelText, { color: t.muted }]}>Cancel</Text>
+          </Pressable>
+          <Pressable style={[styles.barGo, { backgroundColor: group.size ? t.moss : t.line }]}>
+            <Text style={[styles.primaryText, { color: group.size ? t.paper : t.muted }]}>
+              {group.size ? `Start room with ${group.size} ${group.size === 1 ? 'person' : 'people'}` : 'Pick people'}
+            </Text>
+          </Pressable>
+        </View>
+      )}
       <PlatformSheet person={selected} t={t} onClose={() => setSelected(null)} />
       <StatusBar style="auto" />
     </View>
@@ -148,6 +179,15 @@ const styles = StyleSheet.create({
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1 },
   dot: { width: 12, height: 12, borderRadius: 6 },
   jitsi: { borderStyle: 'dashed', borderWidth: 1.5 },
+  groupBtn: { padding: 12, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center' },
+  groupText: { fontSize: 15, fontWeight: '600' },
+  picked: { borderWidth: 2 },
+  check: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  checkMark: { fontSize: 15, fontWeight: '800' },
+  bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 10, padding: 16, paddingBottom: 28,
+         borderTopWidth: 1 },
+  barCancel: { paddingHorizontal: 16, justifyContent: 'center' },
+  barGo: { flex: 1, padding: 14, borderRadius: 14, alignItems: 'center' },
   primary: { padding: 14, borderRadius: 14, alignItems: 'center', marginTop: 6 },
   primaryText: { fontSize: 16, fontWeight: '600' },
   cancel: { padding: 12, alignItems: 'center' },
