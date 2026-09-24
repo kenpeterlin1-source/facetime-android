@@ -155,6 +155,17 @@ call, so it is the group option; FaceTime/Zoom/Meet group calls stay in those ap
 - **v1.1:** native module → WhatsApp detection + direct video call; WhatsApp nudge.
 - **v1.2:** Meet data rows, Signal/Telegram, recents/favourites.
 
+### Your rooms (host instead of ask) - 2026-09-24
+Set up **your own permanent room once** per platform; Krypu then **sends your link** to whoever you call and opens the room.
+The reverse of "ask for their link", and it works for people who have never saved anything.
+- **Zoom:** your Personal Meeting Room link (never changes). **Meet:** one "meeting for later" link. **Teams:** one meeting
+  link. **Jitsi:** Krypu creates a private room once and keeps it. **FaceTime: not possible** (Android can't create links).
+- Setup: paste each link once (help text per platform, same steps as peterlin.com/krypu); Jitsi is automatic.
+- Stored in app storage on the phone only.
+- Person sheet: their platforms first, then **"Or invite <name> to your room"** (each ready room).
+- **Group calls** use any of your ready rooms (Zoom, Meet, Teams or Jitsi), not just Jitsi: pick people → tap the room.
+- Auto-creating Zoom/Meet/Teams rooms via their APIs would need sign-in (OAuth) - not planned; pasting once is enough.
+
 ## Look and feel
 **Personal styling, not REMAX corporate colours.** This is a household app — warm and plain, nothing
 that looks like a work tool.
@@ -180,3 +191,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - TODO (end of 2026-09-24 session): rename GitHub repo facetime-android → krypu and local folder ~/personal/facetime-android → ~/personal/krypu (update ~/personal/README.md table + .claude/launch.json path).
 - 2026-09-24: added group Jitsi calls (multi-select). Snapchat/Instagram: later, open-chat tier only.
 - 2026-09-24: web page built at peterlin-com-website/site/krypu/ (→ peterlin.com/krypu). "Ask for link" texts should link to https://peterlin.com/krypu/#<platform> for the steps.
+- 2026-09-24: added "your rooms": host with your own permanent Zoom/Meet/Teams/Jitsi room; group calls can use any of them.

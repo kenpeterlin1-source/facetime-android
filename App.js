@@ -4,7 +4,10 @@ import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import TopoBackground from './src/TopoBackground';
 import { PLATFORMS } from './src/platforms';
+
+const readyRooms = () => HOSTABLE.filter((k) => SAMPLE_MY_ROOMS[k]);
 import { SAMPLE_CONTACTS } from './src/sampleContacts';
+import { HOSTABLE, SAMPLE_MY_ROOMS } from './src/myRooms';
 import { useTheme } from './src/theme';
 
 function Chip({ platform, t }) {
@@ -69,15 +72,21 @@ function PlatformSheet({ person, t, onClose }) {
               </Pressable>
             );
           })}
-          <Pressable style={[styles.option, styles.jitsi, { borderColor: t.moss }]}>
-            <View style={[styles.dot, { backgroundColor: t.moss }]} />
-            <View style={styles.cardBody}>
-              <Text style={[styles.name, { color: t.ink }]}>Start a Jitsi room</Text>
-              <Text style={[styles.sub, { color: t.muted }]}>
-                Makes a private room and texts {person.name} the link. Works for anyone, nothing to install.
-              </Text>
-            </View>
-          </Pressable>
+          <Text style={[styles.section, { color: t.muted }]}>Or invite {person.name} to your room</Text>
+          {readyRooms().map((k) => {
+            const { label, tone } = PLATFORMS[k];
+            return (
+              <Pressable key={`mine-${k}`} style={[styles.option, styles.mine, { borderColor: t[tone] }]}>
+                <View style={[styles.dot, { backgroundColor: t[tone] }]} />
+                <View style={styles.cardBody}>
+                  <Text style={[styles.name, { color: t.ink }]}>Your {label} room</Text>
+                  <Text style={[styles.sub, { color: t.muted }]}>
+                    Texts {person.name} your link, then opens your room.{k === 'jitsi' ? ' Nothing to install for them.' : ''}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
           <Pressable onPress={onClose} style={styles.cancel}>
             <Text style={[styles.cancelText, { color: t.muted }]}>Cancel</Text>
           </Pressable>
@@ -108,10 +117,24 @@ function Home() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text style={[styles.title, { color: t.ink }]}>{picking ? 'Who should join?' : 'Who do you want to see?'}</Text>
           {picking
-            ? <Text style={[styles.lede, { color: t.muted }]}>Pick people for a group Jitsi call. Each of them gets the room link by text or WhatsApp.</Text>
-            : <Pressable onPress={() => setPicking(true)} style={[styles.groupBtn, { borderColor: t.moss, backgroundColor: t.card }]}>
-                <Text style={[styles.groupText, { color: t.moss }]}>Group call with Jitsi</Text>
-              </Pressable>}
+            ? <Text style={[styles.lede, { color: t.muted }]}>Pick people, then choose which of your rooms to use. Each of them gets the link by text or WhatsApp.</Text>
+            : <View style={[styles.rooms, { backgroundColor: t.card, borderColor: t.line }]}>
+                <Text style={[styles.section, { color: t.muted, marginTop: 0 }]}>Your rooms, ready to send</Text>
+                <View style={styles.chips}>
+                  {HOSTABLE.map((k) => {
+                    const { label, tone } = PLATFORMS[k];
+                    const ready = !!SAMPLE_MY_ROOMS[k];
+                    return (
+                      <View key={k} style={[styles.chip, ready ? { backgroundColor: t[`${tone}Soft`] } : { borderWidth: 1, borderColor: t.line, borderStyle: 'dashed' }]}>
+                        <Text style={[styles.chipText, { color: ready ? t[tone] : t.muted }]}>{ready ? `✓ ${label}` : `+ ${label}`}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+                <Pressable onPress={() => setPicking(true)} style={[styles.groupBtn, { borderColor: t.moss }]}>
+                  <Text style={[styles.groupText, { color: t.moss }]}>Start a group call</Text>
+                </Pressable>
+              </View>}
           <TextInput
             value={query} onChangeText={setQuery} placeholder="Search contacts" placeholderTextColor={t.muted}
             style={[styles.search, { backgroundColor: t.card, borderColor: t.line, color: t.ink }]}
@@ -133,11 +156,15 @@ function Home() {
           <Pressable onPress={stopPicking} style={styles.barCancel}>
             <Text style={[styles.cancelText, { color: t.muted }]}>Cancel</Text>
           </Pressable>
-          <Pressable style={[styles.barGo, { backgroundColor: group.size ? t.moss : t.line }]}>
-            <Text style={[styles.primaryText, { color: group.size ? t.paper : t.muted }]}>
-              {group.size ? `Start room with ${group.size} ${group.size === 1 ? 'person' : 'people'}` : 'Pick people'}
-            </Text>
-          </Pressable>
+          <View style={styles.barRooms}>
+            {group.size === 0
+              ? <View style={[styles.barGo, { backgroundColor: t.line }]}><Text style={[styles.primaryText, { color: t.muted }]}>Pick people</Text></View>
+              : readyRooms().map((k) => (
+                  <Pressable key={k} style={[styles.barGo, { backgroundColor: t[PLATFORMS[k].tone] }]}>
+                    <Text style={[styles.primaryText, { color: t.paper }]}>{PLATFORMS[k].label} · {group.size}</Text>
+                  </Pressable>
+                ))}
+          </View>
         </View>
       )}
       <PlatformSheet person={selected} t={t} onClose={() => setSelected(null)} />
@@ -178,8 +205,11 @@ const styles = StyleSheet.create({
   sheetTitle: { fontSize: 24, fontWeight: '700', fontFamily: 'Georgia', marginBottom: 4 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1 },
   dot: { width: 12, height: 12, borderRadius: 6 },
-  jitsi: { borderStyle: 'dashed', borderWidth: 1.5 },
-  groupBtn: { padding: 12, borderRadius: 14, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center' },
+  mine: { borderStyle: 'dashed', borderWidth: 1.5 },
+  section: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 8 },
+  rooms: { borderWidth: 1, borderRadius: 16, padding: 14, gap: 10 },
+  barRooms: { flex: 1, flexDirection: 'row', gap: 8 },
+  groupBtn: { padding: 11, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center' },
   groupText: { fontSize: 15, fontWeight: '600' },
   picked: { borderWidth: 2 },
   check: { width: 26, height: 26, borderRadius: 13, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
@@ -187,7 +217,7 @@ const styles = StyleSheet.create({
   bar: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: 'row', gap: 10, padding: 16, paddingBottom: 28,
          borderTopWidth: 1 },
   barCancel: { paddingHorizontal: 16, justifyContent: 'center' },
-  barGo: { flex: 1, padding: 14, borderRadius: 14, alignItems: 'center' },
+  barGo: { flex: 1, paddingVertical: 14, paddingHorizontal: 6, borderRadius: 14, alignItems: 'center' },
   primary: { padding: 14, borderRadius: 14, alignItems: 'center', marginTop: 6 },
   primaryText: { fontSize: 16, fontWeight: '600' },
   cancel: { padding: 12, alignItems: 'center' },
