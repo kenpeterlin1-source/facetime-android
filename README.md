@@ -179,3 +179,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: **renamed to Krypu** (package com.peterlin.krypu). Checked: no existing app by that name; krypu.com and krypu.app unregistered.
 - TODO (end of 2026-09-24 session): rename GitHub repo facetime-android → krypu and local folder ~/personal/facetime-android → ~/personal/krypu (update ~/personal/README.md table + .claude/launch.json path).
 - 2026-09-24: added group Jitsi calls (multi-select). Snapchat/Instagram: later, open-chat tier only.
+- 2026-09-24: web page built at peterlin-com-website/site/krypu/ (→ peterlin.com/krypu). "Ask for link" texts should link to https://peterlin.com/krypu/#<platform> for the steps.
