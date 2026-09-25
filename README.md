@@ -311,3 +311,16 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
   - **Resume:** unlock phone → dev build (`npx expo start --dev-client`, adb reverse tcp:8081) → Settings → Find links
     in my old texts (Ken allows SMS; expect Willow's old FaceTime link) → Watch new texts (Ken enables Notification
     access) → wait for Kate's reply (asked 2026-09-25 08:31) → release 0.1.4.
+- 2026-09-25 **MILESTONE: first real FaceTime call Android → iPhone through Krypu (Ken → Kate).** Flow: ask from
+  Krypu (Kate needed clearer steps - on newer iOS, Create Link is under New FaceTime / + → Create Link) → Kate sent
+  the link → copied → Krypu's "You copied a FaceTime link → Save to Kate Peterlin" → Kate's card → FaceTime →
+  Chrome Custom Tab "Waiting to be let in…" → text Kate → she let him in. Works.
+  Learned / to fix:
+  1. Reopening Krypu (launcher) while the FaceTime Custom Tab is open **closes the call** - keep the Custom Tab
+     alive (launchMode/`showInRecents`, or open FaceTime in Chrome proper instead of a Custom Tab).
+  2. FaceTime button sends the "I'm on FaceTime" nudge every time - skip it if you texted them in the last few min,
+     and make the nudge say "tap the notification to let me in".
+  3. **Automatic link capture is blocked on Android 17 for browser-installed apps**: Notification access and SMS are
+     "restricted settings" and even "Allow restricted settings" didn't unlock them. Apps installed from a computer
+     (adb) aren't restricted - reinstall via adb (clears Krypu's own data; links on contact cards stay) or keep
+     copy → Krypu. Ken chose copy for now.
