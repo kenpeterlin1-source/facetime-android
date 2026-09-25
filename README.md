@@ -272,9 +272,6 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
   is the screen's `ImageBackground` (pre-rendered PNGs per theme, `node tools/make_topo_png.mjs`). Also: Android
   clipped text beside flexible siblings (local time now on its own line). Debugging: Ken's Pixel 9 Pro XL over
   **Wireless debugging** (adb pair/connect) + `npx expo run:android` dev build with live logs.
-- **Resume Fri 2026-09-26:** 0.1.1 is committed (version 0.1.1 / versionCode 2) but the release APK build was still
-  running when Ken closed for the night - it may not have finished or been published. Check
-  `curl -sL https://github.com/kenpeterlin1-source/krypu/releases/latest/download/latest.json`; if it still says 0.1.0:
-  build (template CLAUDE.md step 2) then `scripts/release.sh "Fixes the blank screen on Android..."`. The phone has the
-  **dev build** installed (needs this Mac's Metro to run) - installing 0.1.1 from the releases page replaces it.
-  Then: the NEXT list above (remember people between calls).
+- **Resume Fri 2026-09-26:** **0.1.1 is published** (https://github.com/kenpeterlin1-source/krypu/releases/latest) -
+  install it on the phone to replace the dev build (the dev build needs this Mac's Metro to run). Then: the NEXT list
+  above (remember people between calls).
