@@ -266,4 +266,9 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: added local time per person (guessed from the number, overridable) with a late-night warning.
 - 2026-09-24: after-call notes → tasks (Claude or on-phone fallback), save to Google Tasks/Calendar/Email/Text with remembered default; AI provider choice in setup.
 - 2026-09-24: **v0.1.0 published** (first test build = web mock-up with sample people): https://github.com/kenpeterlin1-source/krypu/releases/latest. APK 107 MB (all ABIs - split per ABI later).
-- 2026-09-24: **BUG (open): v0.1.0 on Ken's Android phone shows only the topo background - no text/buttons, no crash.** Web preview works. No logs yet: Mac USB is disabled → use Wireless debugging (adb pair <ip:port> + code, then adb connect <ip:port>; Mac must be off the work VPN), then `adb logcat *:E ReactNativeJS:V`. Fix → publish 0.1.1 (update banner should appear).
+- 2026-09-24: **BUG (FIXED in 0.1.1): v0.1.0 on Ken's Android phone showed only the topo background - no text/buttons, no crash.** Web preview works. No logs yet: Mac USB is disabled → use Wireless debugging (adb pair <ip:port> + code, then adb connect <ip:port>; Mac must be off the work VPN), then `adb logcat *:E ReactNativeJS:V`. Fix → publish 0.1.1 (update banner should appear).
+- 2026-09-24: **0.1.1** - cause of the blank screen: the topo map was an absolutely-positioned sibling of the content
+  (react-native-svg, and a plain Image too) and on Android's new renderer it hid everything, zIndex or not. Fix: the map
+  is the screen's `ImageBackground` (pre-rendered PNGs per theme, `node tools/make_topo_png.mjs`). Also: Android
+  clipped text beside flexible siblings (local time now on its own line). Debugging: Ken's Pixel 9 Pro XL over
+  **Wireless debugging** (adb pair/connect) + `npx expo run:android` dev build with live logs.
