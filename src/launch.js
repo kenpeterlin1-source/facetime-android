@@ -39,10 +39,12 @@ export function nudgeText(platform) {
 
 // Short, and says up front they'll have to let you in - FaceTime links don't ring, the host admits the guest.
 const FACETIME_ASK =
-  "Hi! I'm on Android and want to be able to FaceTime you. Could you send me a FaceTime link? It takes 20 seconds:\n" +
-  '1. Open FaceTime and tap Create Link\n' +
-  '2. Tap Add Name, type my name, then send it to me in Messages\n' +
-  "When I call with it, you'll get a notification that I'm waiting - tap it and let me in. You only do this once. Thanks!";
+  "Hi! I'm on Android and want to be able to FaceTime you. Could you send me a FaceTime link? It's quick:\n" +
+  '1. Open the FaceTime app (green camera icon)\n' +
+  '2. At the top, tap Create Link - a share menu slides up\n' +
+  '3. Tap Messages, pick me, and send it (or tap Copy and paste it into our chat)\n' +
+  'It sends me a link starting with facetime.apple.com. When I use it, you\'ll get a notification that I\'d like to ' +
+  'join - tap it and let me in with the green check. You only do this once. Thanks!';
 
 const HOW = {
   facetime: '',
