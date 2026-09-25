@@ -66,11 +66,16 @@ export function useContacts() {
   useEffect(() => {
     check();
     if (WEB) return;
-    // refresh when contacts change or when you come back from the Contacts app
-    const changes = addContactsChangeListener(() => { load().catch(() => {}); });
+    // refresh when you come back from the Contacts app, or (once allowed) when contacts change
     const app = AppState.addEventListener('change', (s) => { if (s === 'active') check(); });
-    return () => { changes.remove(); app.remove(); };
-  }, [check, load]);
+    return () => app.remove();
+  }, [check]);
+  useEffect(() => {
+    // watching contacts before permission is granted throws on Android - only start once they're readable
+    if (WEB || state.status !== 'ready') return;
+    const changes = addContactsChangeListener(() => { load().catch(() => {}); });
+    return () => changes.remove();
+  }, [state.status, load]);
 
   return { ...state, ask, reload: load };
 }
