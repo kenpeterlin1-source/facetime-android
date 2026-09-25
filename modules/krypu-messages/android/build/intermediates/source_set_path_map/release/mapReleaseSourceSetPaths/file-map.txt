@@ -1,0 +1,7 @@
+com.peterlin.krypu.messages.krypu-messages-pngs-0 /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/build/generated/res/pngs/release
+com.peterlin.krypu.messages.krypu-messages-resValues-1 /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/build/generated/res/resValues/release
+com.peterlin.krypu.messages.krypu-messages-mergeReleaseResources-2 /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
+com.peterlin.krypu.messages.krypu-messages-mergeReleaseResources-3 /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
+com.peterlin.krypu.messages.krypu-messages-release-4 /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/build/intermediates/merged_res/release/mergeReleaseResources
+com.peterlin.krypu.messages.krypu-messages-main-5 /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/res
+com.peterlin.krypu.messages.krypu-messages-release-6 /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/release/res

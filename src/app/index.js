@@ -1,5 +1,6 @@
 // Home: your contacts, filtered to people you can video-call on the apps you use.
-import { Redirect, router } from 'expo-router';
+import { Redirect, router, useLocalSearchParams } from 'expo-router';
+import { canSplit } from '../callTab';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, AppState, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
@@ -259,7 +260,7 @@ function CallCheck({ call, t, onWorked, onFailed }) {
 // After a call that worked: "Anything to remember?" - type or use the keyboard's mic to dictate.
 function AfterCallNotes({ call, t, onDone, onTasks }) {
   const { settings } = useSettings();
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState(call.note ?? '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const find = async () => {
@@ -503,6 +504,16 @@ export default function Home() {
   const [found, setFound] = useState(null);        // {person, tasks} to show in the tasks popup
 
   const contacts = useContacts();
+  const params = useLocalSearchParams();
+  useEffect(() => {
+    if (!params.after) return;
+    const person = contacts.people.find((p) => p.id === params.after);
+    if (!person) return;
+    const info = { person, platform: params.platform, mine: false, note: params.note };
+    if (params.failed) { setBroken((b) => new Set(b).add(`${person.id}:${params.platform}`)); setFix(info); }
+    else setNotesFor(info);
+    router.setParams({ after: undefined, note: undefined, failed: undefined, platform: undefined });
+  }, [params.after, contacts.people.length]);
   const [copied, setCopied] = useState(null);      // {url, platform} found on the clipboard, not saved yet
   const seenClip = useRef('');
   const checkClipboard = async () => {
@@ -544,7 +555,7 @@ export default function Home() {
       if (s !== 'active') return;
       checkClipboard();
       collect();
-      if (!(await step())) setCall((c) => c && { ...c, back: true });
+      if (!(await step())) setCall((c) => c && (c.screen ? null : { ...c, back: true }));
     });
     return () => sub.remove();
   }, []);
@@ -568,10 +579,13 @@ export default function Home() {
       return run({ person, platform, mine }, [() => textTo(person, inviteText(platform, url)), () => openRoom(url)]);
     }
     // FaceTime links don't ring the iPhone - text them first so they know to let you in (not again if you just did)
+    // FaceTime with Chrome available: the in-call screen (notes on top, call docked below) takes over
+    const split = platform === 'facetime' && canSplit();
+    const open = split ? () => router.push({ pathname: '/call', params: { id: person.id, platform } }) : () => openTheirs(person, platform);
     const steps = platform === 'facetime' && person.phone && !textedRecently(person)
-      ? [() => textTo(person, nudgeText('facetime')), () => openTheirs(person, platform)]
-      : [() => openTheirs(person, platform)];
-    run({ person, platform, mine }, steps);
+      ? [() => textTo(person, nudgeText('facetime')), open]
+      : [open];
+    run({ person, platform, mine, screen: split }, steps);
   };
   const markAsked = (person, platform) => update((s) => ({ ...s,
     asked: { ...s.asked, [person.id]: { platform, at: new Date().toISOString() } },

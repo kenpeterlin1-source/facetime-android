@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.peterlin.krypu.messages" >
+
+    <uses-sdk android:minSdkVersion="24" />
+    <!-- one-time scan of old texts for video-call links (SMS/MMS only; RCS chats aren't readable by other apps) -->
+    <uses-permission android:name="android.permission.READ_SMS" />
+
+    <application>
+
+        <!--
+         watches message notifications (SMS and RCS) for new video-call links; the user switches it on in
+         Settings → Notification access. Only links are kept; nothing leaves the phone.
+        -->
+        <service
+            android:name="com.peterlin.krypu.messages.LinkListener"
+            android:exported="false"
+            android:label="Krypu - save call links from texts"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" >
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+    </application>
+
+</manifest>

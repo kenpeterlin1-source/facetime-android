@@ -1,0 +1,38 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:1:1-17:12
+INJECTED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:1:1-17:12
+	package
+		INJECTED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:1:11-69
+uses-permission#android.permission.READ_SMS
+ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:3:3-65
+	android:name
+		ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:3:20-62
+application
+ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:4:3-16:17
+service#com.peterlin.krypu.messages.LinkListener
+ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:7:5-15:15
+	android:label
+		ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:9:7-57
+	android:exported
+		ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:10:7-31
+	android:permission
+		ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:11:7-81
+	android:name
+		ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:8:7-62
+intent-filter#action:name:android.service.notification.NotificationListenerService
+ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:12:7-14:23
+action#android.service.notification.NotificationListenerService
+ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:13:9-91
+	android:name
+		ADDED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:13:17-88
+uses-sdk
+INJECTED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml
+INJECTED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml

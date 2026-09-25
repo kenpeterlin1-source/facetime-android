@@ -329,6 +329,12 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
   last 10 min (`settings.lastText`) and now says "tap the notification on your iPhone to let me in"; clearer
   request steps; full time-zone table; blue iPhone people; contacts-listener fix.
 - **NEXT (0.1.5, Ken's idea): call + notes together** - Chrome **Partial Custom Tab** (androidx.browser,
-  `setInitialActivityHeightPx` ≈ 2/3 screen, `setBackgroundInteractionBehavior(ON)`, needs a bound
+  `setInitialActivityHeightPx` ≈ 2/3 screen, `setBackgroundInteractionEnabled(true)`, needs a bound
   CustomTabsSession) in `modules/krypu-messages` (or a new module): Krypu shows person + notes in the top third,
   the FaceTime call docks in the bottom two-thirds (Chrome only docks partial tabs at the bottom).
+- 2026-09-25 (paused - Ken switched to the lake house project): **0.1.5 split screen built, not yet tested on the
+  phone.** `modules/krypu-call-tab` (Chrome partial tab, `setInitialActivityHeightPx`, `setBackgroundInteractionEnabled`,
+  shown/hidden events), `src/callTab.js`, `src/app/call.js` (top third: person, local time, your notes, "notes from
+  this call"; after close: Rejoin / Done → tasks from call notes / Link didn't work). Home routes FaceTime there when
+  Chrome is available. Dev-only test: open `/call?id=<contact id>&testUrl=https://example.com` so nothing rings.
+  Resume: unlock phone → dev server → test layout with testUrl → real call with Kate → release 0.1.5.
