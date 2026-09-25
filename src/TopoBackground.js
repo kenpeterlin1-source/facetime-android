@@ -1,21 +1,9 @@
-// Full-screen abstract topographic map behind the app, matching peterlin.com.
-import { memo } from 'react';
-import { StyleSheet } from 'react-native';
-import Svg, { G, Path } from 'react-native-svg';
-import { TOPO_PATHS, TOPO_VIEWBOX } from './topoPaths';
+// The abstract topographic map behind every screen, matching peterlin.com - pre-rendered PNGs, one per theme
+// (tools/make_topo_png.mjs), used as the screen's ImageBackground in ui.js. Drawing it as an absolutely-positioned
+// sibling (live react-native-svg, or an Image) hid all screen content on Android's new renderer (v0.1.0 bug).
+const LIGHT = require('../assets/topo-light.png');
+const DARK = require('../assets/topo-dark.png');
 
-function TopoBackground({ color }) {
-  return (
-    <Svg style={styles.fill} viewBox={TOPO_VIEWBOX} preserveAspectRatio="xMidYMid slice">
-      <G fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round">
-        {TOPO_PATHS.map((p, i) => (
-          <Path key={i} d={p.d} strokeWidth={p.major ? 1.6 : 0.8} vectorEffect="non-scaling-stroke" />
-        ))}
-      </G>
-    </Svg>
-  );
+export function topoImage(colorScheme) {
+  return colorScheme === 'dark' ? DARK : LIGHT;
 }
-
-const styles = StyleSheet.create({ fill: { ...StyleSheet.absoluteFillObject, pointerEvents: 'none' } });
-
-export default memo(TopoBackground);

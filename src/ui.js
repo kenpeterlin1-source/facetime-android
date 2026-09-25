@@ -1,22 +1,23 @@
 // Shared building blocks: the topo screen, platform chips, toggles and update banner.
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import TopoBackground from './TopoBackground';
+import { ImageBackground, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, useColorScheme, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { topoImage } from './TopoBackground';
 import { PLATFORMS } from './platforms';
 import { useTheme } from './theme';
 import * as U from './update';
 
 export function Screen({ children, footer }) {
   const t = useTheme();
+  const insets = useSafeAreaInsets();
   return (
-    <View style={[ui.root, { backgroundColor: t.paper }]}>
-      <TopoBackground color={t.topo} />
-      <SafeAreaView style={ui.flex}>
+    // the topo map is the screen's background image; content sits inside it (see TopoBackground.js for why)
+    <ImageBackground source={topoImage(useColorScheme())} resizeMode="cover" style={[ui.root, { backgroundColor: t.paper }]}>
+      <View style={[ui.flex, { paddingTop: insets.top, paddingBottom: footer ? 0 : insets.bottom }]}>
         <ScrollView contentContainerStyle={ui.content} keyboardShouldPersistTaps="handled">{children}</ScrollView>
-      </SafeAreaView>
+      </View>
       {footer}
-    </View>
+    </ImageBackground>
   );
 }
 
@@ -36,7 +37,7 @@ export function PlatformToggle({ platform, value, onChange, note }) {
   return (
     <View style={[ui.row, { backgroundColor: t.card, borderColor: t.line }]}>
       <View style={[ui.dot, { backgroundColor: t[tone] }]} />
-      <View style={ui.flex}>
+      <View style={ui.shrink}>
         <Text style={[ui.rowTitle, { color: t.ink }]}>{label}</Text>
         {!!note && <Text style={[ui.rowNote, { color: t.muted }]}>{note}</Text>}
       </View>
@@ -63,6 +64,8 @@ export function UpdateBanner() {
 export const ui = StyleSheet.create({
   root: { flex: 1 },
   flex: { flex: 1 },
+  // flex: 1 plus flexShrink/minWidth so Android wraps long text instead of clipping it
+  shrink: { flex: 1, flexShrink: 1, minWidth: 0 },
   content: { padding: 20, paddingTop: 28, paddingBottom: 110, gap: 10, maxWidth: 560, width: '100%', alignSelf: 'center' },
   title: { fontSize: 30, fontWeight: '700', fontFamily: 'Georgia', letterSpacing: -0.5, marginBottom: 4 },
   lede: { fontSize: 16, lineHeight: 23 },

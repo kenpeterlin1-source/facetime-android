@@ -22,10 +22,8 @@ function Person({ person, t, onPress, picking, picked, broken, note, zone, now }
         <Text style={[styles.avatarText, { color: t.clay }]}>{person.name[0]}</Text>
       </View>
       <View style={styles.cardBody}>
-        <View style={styles.nameRow}>
-          <Text style={[styles.name, styles.flex, { color: t.ink }]}>{person.name}</Text>
-          <LocalTime zone={zone} t={t} now={now} />
-        </View>
+        <Text style={[styles.name, { color: t.ink }]}>{person.name}</Text>
+        <LocalTime zone={zone} t={t} now={now} style={styles.timeLine} />
         <View style={ui.chips}>
           {none
             ? <Text style={[styles.sub, { color: t.muted }]}>No video links yet</Text>
@@ -51,8 +49,8 @@ function LocalTime({ zone, t, now, style }) {
   if (!zone) return null;
   const { time, night } = localTime(zone, now);
   return (
-    <Text style={[styles.sub, { color: night ? t.clay : t.muted }, style]}>
-      {night ? '☾ ' : ''}{time} in {zoneName(zone)}
+    <Text style={[styles.sub, styles.time, { color: night ? t.clay : t.muted }, style]} numberOfLines={1}>
+      {`${night ? '☾ ' : ''}${time} in ${zoneName(zone)}`}
     </Text>
   );
 }
@@ -483,7 +481,9 @@ const styles = StyleSheet.create({
   groupBtn: { padding: 11, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', alignItems: 'center' },
   groupText: { fontSize: 15, fontWeight: '600' },
   rowGap: { flexDirection: 'row', gap: 8 },
-  nameRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
+  // local time sits on its own line: beside the name, Android measured it too short and clipped it
+  time: { flexShrink: 0 },
+  timeLine: { marginTop: -4 },
   warn: { padding: 10, borderRadius: 12 },
   half: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center' },
   scrim: { flex: 1, justifyContent: 'flex-end' },
