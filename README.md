@@ -265,3 +265,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: added Voice (phone dialer, WhatsApp voice) and private per-person notes.
 - 2026-09-24: added local time per person (guessed from the number, overridable) with a late-night warning.
 - 2026-09-24: after-call notes → tasks (Claude or on-phone fallback), save to Google Tasks/Calendar/Email/Text with remembered default; AI provider choice in setup.
+- 2026-09-24: **v0.1.0 published** (first test build = web mock-up with sample people): https://github.com/kenpeterlin1-source/krypu/releases/latest. APK 107 MB (all ABIs - split per ABI later).
