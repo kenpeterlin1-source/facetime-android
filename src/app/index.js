@@ -1,5 +1,6 @@
 // Home: your contacts, filtered to people you can video-call on the apps you use.
 import { Redirect, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, AppState, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { analyzeNote } from '../ai';
@@ -101,6 +102,7 @@ function PersonNote({ person, t }) {
 function PlatformSheet({ person, rooms, t, onClose, onLaunch }) {
   const { settings } = useSettings();
   const now = useNow();
+  const insets = useSafeAreaInsets();
   if (!person) return null;
   const zone = zoneFor(person, settings);
   const late = zone && localTime(zone, now).night;
@@ -112,7 +114,7 @@ function PlatformSheet({ person, rooms, t, onClose, onLaunch }) {
     <Modal transparent animationType="fade" visible onRequestClose={onClose}>
       <Pressable style={[styles.scrim, { backgroundColor: t.scrim }]} onPress={onClose}>
         <Pressable style={[styles.sheet, { backgroundColor: t.paper, borderColor: t.line }]}>
-          <ScrollView contentContainerStyle={styles.sheetBody} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={[styles.sheetBody, { paddingBottom: 32 + insets.bottom }]} keyboardShouldPersistTaps="handled">
           <Text style={[styles.sheetTitle, { color: t.ink }]}>Call {person.name}</Text>
           {!!person.phone && <Text style={[styles.sub, { color: t.muted, marginTop: -8 }]}>{person.phone}</Text>}
           <LocalTime zone={zone} t={t} now={now} style={{ fontSize: 15, fontWeight: '600' }} />
@@ -164,7 +166,7 @@ function PlatformSheet({ person, rooms, t, onClose, onLaunch }) {
           {voice.length > 0 && <Text style={[ui.section, { color: t.muted }]}>Voice</Text>}
           {voice.map((v) => (
             <Pressable key={v.key} style={[styles.option, { backgroundColor: t.card, borderColor: t.line }]}>
-              <Text style={[styles.voiceIcon, { color: t[v.tone] }]}>☏</Text>
+              <View style={[ui.dot, { backgroundColor: t[v.tone] }]} />
               <View style={styles.cardBody}>
                 <Text style={[styles.name, { color: t.ink }]}>{v.label}</Text>
                 <Text style={[styles.sub, { color: t.muted }]}>{v.how}</Text>
@@ -242,6 +244,7 @@ function AfterCallNotes({ call, t, onDone, onTasks }) {
 // Tasks found in the note: untick any you don't want, then save. The last save target becomes the big button.
 function TasksPopup({ found, t, onClose }) {
   const { settings, update } = useSettings();
+  const insets = useSafeAreaInsets();
   const [picked, setPicked] = useState(() => found?.tasks.map(() => true) ?? []);
   const [saved, setSaved] = useState('');
   if (!found) return null;
@@ -260,7 +263,7 @@ function TasksPopup({ found, t, onClose }) {
   return (
     <Modal transparent animationType="fade" visible onRequestClose={onClose}>
       <Pressable style={[styles.scrim, { backgroundColor: t.scrim }]} onPress={onClose}>
-        <Pressable style={[styles.sheet, styles.sheetBody, { backgroundColor: t.paper, borderColor: t.line }]}>
+        <Pressable style={[styles.sheet, styles.sheetBody, { backgroundColor: t.paper, borderColor: t.line, paddingBottom: 32 + insets.bottom }]}>
           <Text style={[styles.sheetTitle, { color: t.ink }]}>{saved ? `Saved to ${saved}` : 'Tasks from your call'}</Text>
           {found.tasks.map((task, i) => (
             <Pressable key={i} onPress={() => setPicked((p) => p.map((v, j) => (j === i ? !v : v)))}
@@ -306,12 +309,13 @@ function TasksPopup({ found, t, onClose }) {
 // Their link failed: ask them for a new one, or paste one you already have.
 function FixTheirLink({ fix, t, onClose, onFixed }) {
   const [draft, setDraft] = useState('');
+  const insets = useSafeAreaInsets();
   if (!fix) return null;
   const { label } = PLATFORMS[fix.platform];
   return (
     <Modal transparent animationType="fade" visible onRequestClose={onClose}>
       <Pressable style={[styles.scrim, { backgroundColor: t.scrim }]} onPress={onClose}>
-        <Pressable style={[styles.sheet, styles.sheetBody, { backgroundColor: t.paper, borderColor: t.line }]}>
+        <Pressable style={[styles.sheet, styles.sheetBody, { backgroundColor: t.paper, borderColor: t.line, paddingBottom: 32 + insets.bottom }]}>
           <Text style={[styles.sheetTitle, { color: t.ink }]}>Fix {fix.person.name}'s {label} link</Text>
           <Text style={[ui.lede, { color: t.muted }]}>
             Links can stop working if they're deleted or expire. Ask {fix.person.name} for a new one, or paste one you already have.
@@ -358,7 +362,9 @@ export default function Home() {
     return () => sub.remove();
   }, [call]);
 
-  const launch = (platform, mine) => { setCall({ person: selected, platform, mine, back: false }); setSelected(null); };
+  // Sample people have no real links yet, so nothing is opened and there's no app switch to wait for:
+  // go straight to "did it work?". Once real links are launched, set back: false and let AppState flip it.
+  const launch = (platform, mine) => { setCall({ person: selected, platform, mine, back: true }); setSelected(null); };
   const failed = () => {
     const c = call; setCall(null);
     if (c.mine) router.push({ pathname: '/settings', params: { fix: c.platform } });
@@ -490,7 +496,6 @@ const styles = StyleSheet.create({
   sheet: { borderTopLeftRadius: 24, borderTopRightRadius: 24, borderWidth: 1, maxHeight: '88%',
            maxWidth: 560, width: '100%', alignSelf: 'center' },
   sheetBody: { padding: 20, paddingBottom: 32, gap: 10 },
-  voiceIcon: { fontSize: 18, width: 12, textAlign: 'center' },
   note: { minHeight: 70, borderWidth: 1, borderRadius: 14, padding: 12, fontSize: 15, textAlignVertical: 'top' },
   sheetTitle: { fontSize: 24, fontWeight: '700', fontFamily: 'Georgia', marginBottom: 4 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1 },

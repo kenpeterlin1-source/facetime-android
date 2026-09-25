@@ -275,3 +275,9 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - **Resume Fri 2026-09-26:** **0.1.1 is published** (https://github.com/kenpeterlin1-source/krypu/releases/latest) -
   install it on the phone to replace the dev build (the dev build needs this Mac's Metro to run). Then: the NEXT list
   above (remember people between calls).
+- 2026-09-25: **0.1.2** tested end to end on Ken's Pixel 9 Pro XL (release APK): setup, AI picker, home, sheet, time-zone
+  change, notes, Settings (Zoom room, update check vs GitHub → "up to date"), back gesture, group picker, restart
+  persistence, did-it-work → notes → tasks → **Save to Calendar opened Google Calendar with the event pre-filled on
+  kenpeterlin1@gmail.com** (discarded, nothing saved), remembered default, both link-failure paths. Fixed: ☏ emoji →
+  dots, sheets clear the gesture bar, mock goes straight to "did it work?" (no real link to open yet).
+  Not tested: Text/Email/Google Tasks targets, Claude extraction (no API key on the phone yet), light mode.
