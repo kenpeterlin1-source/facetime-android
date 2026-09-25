@@ -31,6 +31,10 @@ export const DEFAULTS = {
   iphone: {},
   // link requests you've sent and not received yet: {contactId: {platform, at}} - used to match a copied link
   asked: {},
+  // people hidden from Krypu (still in your phone's contacts): {contactId: name}
+  hidden: {},
+  // true once you chose "Delete, and don't ask again"
+  skipDeleteConfirm: false,
 };
 
 const SettingsContext = createContext(null);
@@ -45,7 +49,7 @@ export function SettingsProvider({ children }) {
         setSettings({ ...DEFAULTS, ...saved, enabled: { ...DEFAULTS.enabled, ...saved.enabled },
                       myRooms: { ...DEFAULTS.myRooms, ...saved.myRooms }, notes: { ...saved.notes }, tz: { ...saved.tz },
                       tasks: saved.tasks ?? [], calls: { ...saved.calls }, groups: saved.groups ?? [],
-                      iphone: { ...saved.iphone }, asked: { ...saved.asked } });
+                      iphone: { ...saved.iphone }, asked: { ...saved.asked }, hidden: { ...saved.hidden } });
       })
       .catch(() => setSettings(DEFAULTS));
   }, []);

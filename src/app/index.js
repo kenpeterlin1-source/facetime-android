@@ -10,7 +10,7 @@ import { saveTasks, TASK_TARGETS } from '../saveTasks';
 import { getAiKey } from '../secret';
 import { PLATFORMS } from '../platforms';
 import * as Clipboard from 'expo-clipboard';
-import { saveLink, useContacts } from '../contacts';
+import { deleteContact, saveLink, useContacts } from '../contacts';
 import { askText, callPhone, inviteText, nudgeText, openRoom, openTheirs, text } from '../launch';
 import { useSettings } from '../settings';
 import { useTheme } from '../theme';
@@ -144,7 +144,7 @@ function Option({ t, tone, title, how, dashed, onPress }) {
   );
 }
 
-function PlatformSheet({ person, rooms, t, onClose, onLaunch, onAsk, onLinkSaved }) {
+function PlatformSheet({ person, rooms, t, onClose, onLaunch, onAsk, onLinkSaved, onHide, onDelete }) {
   const { settings } = useSettings();
   const now = useNow();
   const insets = useSafeAreaInsets();
@@ -213,6 +213,16 @@ function PlatformSheet({ person, rooms, t, onClose, onLaunch, onAsk, onLinkSaved
 
           <Text style={[ui.section, { color: t.muted }]}>Your notes</Text>
           <PersonNote person={person} t={t} />
+
+          <Text style={[ui.section, { color: t.muted }]}>Clean up</Text>
+          <View style={styles.rowGap}>
+            <Pressable onPress={onHide} style={[styles.half, { backgroundColor: t.card, borderWidth: 1, borderColor: t.line }]}>
+              <Text style={[styles.sub, { color: t.ink, fontWeight: '600', textAlign: 'center' }]}>Hide from Krypu</Text>
+            </Pressable>
+            <Pressable onPress={onDelete} style={[styles.half, { backgroundColor: t.card, borderWidth: 1, borderColor: t.clay }]}>
+              <Text style={[styles.sub, { color: t.clay, fontWeight: '600', textAlign: 'center' }]}>Delete contact…</Text>
+            </Pressable>
+          </View>
           <Pressable onPress={onClose} style={styles.cancel}>
             <Text style={[styles.cancelText, { color: t.muted }]}>Close</Text>
           </Pressable>
@@ -566,7 +576,9 @@ export default function Home() {
   const enabled = settings?.enabled ?? {};
   const rooms = HOSTABLE.filter((k) => enabled[k] && settings?.myRooms[k]);
   // only show platforms you've switched on
-  const all = useMemo(() => contacts.people.map((c) => ({ ...c, platforms: c.platforms.filter((p) => enabled[p]) })), [contacts.people, enabled]);
+  const hidden = settings?.hidden ?? {};
+  const all = useMemo(() => contacts.people.filter((c) => !hidden[c.id])
+    .map((c) => ({ ...c, platforms: c.platforms.filter((p) => enabled[p]) })), [contacts.people, enabled, hidden]);
   const withVideo = all.filter((c) => c.platforms.length > 0).length;
   // nobody has links yet (typical on day one) → show everyone rather than an empty list
   const everyone = showAll || picking || withVideo === 0;
@@ -687,6 +699,21 @@ export default function Home() {
       {people.length === 0 && <Text style={[ui.lede, { color: t.muted }]}>No one matches “{query}”.</Text>}
       <PlatformSheet person={selected} rooms={rooms} t={t} onClose={() => setSelected(null)} onLaunch={launch}
         onAsk={(platform) => ask(selected, platform)}
+        onHide={() => { const p = selected; setSelected(null); update((s) => ({ ...s, hidden: { ...s.hidden, [p.id]: p.name } })); }}
+        onDelete={() => {
+          const p = selected;
+          const remove = async () => {
+            setSelected(null);
+            try { await deleteContact(p); contacts.reload?.(); } catch (e) { Alert.alert("Couldn't delete", e.message); }
+          };
+          if (settings.skipDeleteConfirm) return remove();
+          Alert.alert(`Delete ${p.name}?`, "This action will delete them from your contacts - on this phone and in the Google " +
+            "account they sync to (Google keeps deleted contacts in Trash for 30 days). To just tidy Krypu, use Hide instead.", [
+            { text: 'Cancel', style: 'cancel' },
+            { text: "Delete, and don't ask again", style: 'destructive', onPress: () => { update({ skipDeleteConfirm: true }); remove(); } },
+            { text: 'Delete', style: 'destructive', onPress: remove },
+          ]);
+        }}
         onLinkSaved={(platform, url) => { setSelected((p) => p && { ...p, links: { ...p.links, [platform]: url },
           platforms: p.platforms.includes(platform) ? p.platforms : [...p.platforms, platform] }); contacts.reload?.(); }} />
       <FixTheirLink fix={fix} t={t} onClose={() => setFix(null)} onFixed={() => { fixed(); contacts.reload?.(); }} onAsk={askAgain} />

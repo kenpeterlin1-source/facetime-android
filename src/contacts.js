@@ -83,3 +83,9 @@ export async function saveLink(person, url) {
   await new Contact(person.id).addUrlAddress({ label: PLATFORMS[platform].label, url });
   return platform;
 }
+
+// Permanently remove the contact from the phone (and the Google account it syncs to). Callers confirm first.
+export async function deleteContact(person) {
+  if (WEB) return;
+  await new Contact(person.id).delete();
+}

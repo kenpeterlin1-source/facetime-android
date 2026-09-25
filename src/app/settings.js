@@ -117,6 +117,34 @@ export default function Settings() {
           style={{ borderWidth: 1, borderColor: t.line, borderRadius: 12, padding: 10, color: t.ink, fontSize: 15 }} />
       </View>
 
+      {Object.keys(settings.hidden).length > 0 && (
+        <>
+          <Text style={[ui.section, { color: t.muted }]}>Hidden people</Text>
+          <View style={[ui.row, { backgroundColor: t.card, borderColor: t.line, flexDirection: 'column', alignItems: 'stretch', gap: 8 }]}>
+            <Text style={[ui.rowNote, { color: t.muted, marginTop: 0 }]}>Still in your phone's contacts. Tap someone to show them in Krypu again.</Text>
+            <View style={ui.chips}>
+              {Object.entries(settings.hidden).map(([id, name]) => (
+                <Pressable key={id} onPress={() => update((s) => { const h = { ...s.hidden }; delete h[id]; return { ...s, hidden: h }; })}
+                  style={[ui.chip, { paddingVertical: 7, paddingHorizontal: 12, borderWidth: 1, borderColor: t.line }]}>
+                  <Text style={[ui.chipText, { color: t.muted }]}>{name} ↺</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </>
+      )}
+
+      {settings.skipDeleteConfirm && (
+        <Pressable onPress={() => update({ skipDeleteConfirm: false })}
+          style={[ui.row, { backgroundColor: t.card, borderColor: t.line }]}>
+          <View style={ui.shrink}>
+            <Text style={[ui.rowTitle, { color: t.ink }]}>Deleting contacts</Text>
+            <Text style={[ui.rowNote, { color: t.muted }]}>Currently deletes without asking. Tap to ask again every time.</Text>
+          </View>
+          <Text style={{ color: t.clay, fontWeight: '700' }}>Ask again</Text>
+        </Pressable>
+      )}
+
       <Text style={[ui.section, { color: t.muted }]}>About</Text>
       <Updates />
     </Screen>
