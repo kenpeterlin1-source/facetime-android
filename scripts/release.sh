@@ -48,7 +48,8 @@ for f in "$APKNAME" latest.json; do
   echo "$REL" | F="$f" python3 -c 'import json,sys,os;[print(a["id"]) for a in json.load(sys.stdin).get("assets",[]) if a["name"]==os.environ["F"]]' \
     | while read -r aid; do api -X DELETE "https://api.github.com/repos/$REPO/releases/assets/$aid" >/dev/null; done
   CT=$([ "$f" = latest.json ] && echo application/json || echo application/vnd.android.package-archive)
-  api -X POST -H "content-type: $CT" --data-binary "@$OUT/$f" "https://uploads.github.com/repos/$REPO/releases/$ID/assets?name=$f" \
+  # big APKs: allow 15 minutes for the upload (the 60 s default in api() cut off a 107 MB upload)
+  api -m 900 -X POST -H "content-type: $CT" --data-binary "@$OUT/$f" "https://uploads.github.com/repos/$REPO/releases/$ID/assets?name=$f" \
     | python3 -c 'import json,sys;j=json.load(sys.stdin);print("uploaded", j.get("name") or j.get("message"), j.get("size",""))'
 done
 echo "published $URL"
