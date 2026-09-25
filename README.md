@@ -266,3 +266,4 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
 - 2026-09-24: added local time per person (guessed from the number, overridable) with a late-night warning.
 - 2026-09-24: after-call notes → tasks (Claude or on-phone fallback), save to Google Tasks/Calendar/Email/Text with remembered default; AI provider choice in setup.
 - 2026-09-24: **v0.1.0 published** (first test build = web mock-up with sample people): https://github.com/kenpeterlin1-source/krypu/releases/latest. APK 107 MB (all ABIs - split per ABI later).
+- 2026-09-24: **BUG (open): v0.1.0 on Ken's Android phone shows only the topo background - no text/buttons, no crash.** Web preview works. No logs yet: Mac USB is disabled → use Wireless debugging (adb pair <ip:port> + code, then adb connect <ip:port>; Mac must be off the work VPN), then `adb logcat *:E ReactNativeJS:V`. Fix → publish 0.1.1 (update banner should appear).
