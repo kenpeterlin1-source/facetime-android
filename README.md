@@ -324,3 +324,11 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
      "restricted settings" and even "Allow restricted settings" didn't unlock them. Apps installed from a computer
      (adb) aren't restricted - reinstall via adb (clears Krypu's own data; links on contact cards stay) or keep
      copy → Krypu. Ken chose copy for now.
+- 2026-09-25: **0.1.4** - FaceTime opens in Chrome itself (expo-intent-launcher → com.android.chrome, fallback
+  default browser) so returning to Krypu never closes the call; FaceTime nudge skipped if Krypu texted them in the
+  last 10 min (`settings.lastText`) and now says "tap the notification on your iPhone to let me in"; clearer
+  request steps; full time-zone table; blue iPhone people; contacts-listener fix.
+- **NEXT (0.1.5, Ken's idea): call + notes together** - Chrome **Partial Custom Tab** (androidx.browser,
+  `setInitialActivityHeightPx` ≈ 2/3 screen, `setBackgroundInteractionBehavior(ON)`, needs a bound
+  CustomTabsSession) in `modules/krypu-messages` (or a new module): Krypu shows person + notes in the top third,
+  the FaceTime call docks in the bottom two-thirds (Chrome only docks partial tabs at the bottom).

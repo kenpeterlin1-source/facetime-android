@@ -554,17 +554,22 @@ export default function Home() {
     queue.current = steps; setCall({ ...info, back: false }); step();
   };
 
+  // any text Krypu opens for someone is remembered, so a FaceTime nudge right after isn't sent twice
+  const texted = (person) => update((s) => ({ ...s, lastText: { ...s.lastText, [person.id]: new Date().toISOString() } }));
+  const textedRecently = (person) => Date.now() - Date.parse(settings.lastText?.[person.id] ?? 0) < 10 * 60 * 1000;
+  const textTo = (person, body) => { texted(person); return text(person.phone, body); };
+
   const launch = (platform, mine) => {
     const person = selected; setSelected(null);
     if (platform === 'phone') return run({ person, platform: 'phone', mine: false }, [() => callPhone(person)]);
     if (platform === 'whatsapp-voice') return run({ person, platform: 'whatsapp', mine: false }, [() => openTheirs(person, 'whatsapp')]);
     if (mine) {
       const url = settings.myRooms[platform];
-      return run({ person, platform, mine }, [() => text(person.phone, inviteText(platform, url)), () => openRoom(url)]);
+      return run({ person, platform, mine }, [() => textTo(person, inviteText(platform, url)), () => openRoom(url)]);
     }
-    // FaceTime can't ring an Android caller's contact - text them first so they know to open the call
-    const steps = platform === 'facetime' && person.phone
-      ? [() => text(person.phone, nudgeText('facetime')), () => openTheirs(person, platform)]
+    // FaceTime links don't ring the iPhone - text them first so they know to let you in (not again if you just did)
+    const steps = platform === 'facetime' && person.phone && !textedRecently(person)
+      ? [() => textTo(person, nudgeText('facetime')), () => openTheirs(person, platform)]
       : [() => openTheirs(person, platform)];
     run({ person, platform, mine }, steps);
   };
@@ -572,14 +577,14 @@ export default function Home() {
     asked: { ...s.asked, [person.id]: { platform, at: new Date().toISOString() } },
     // asking for a FaceTime link means they have an iPhone
     iphone: platform === 'facetime' ? { ...s.iphone, [person.id]: true } : s.iphone }));
-  const ask = (person, platform) => { setSelected(null); markAsked(person, platform); text(person.phone, askText(platform)).catch(() => {}); };
+  const ask = (person, platform) => { setSelected(null); markAsked(person, platform); textTo(person, askText(platform)).catch(() => {}); };
   const groupCall = (platform) => {
     const url = settings.myRooms[platform];
     const invited = contacts.people.filter((p) => group.has(p.id) && p.phone);
     const who = { id: 'group', name: invited.map((p) => p.name.split(' ')[0]).join(', ') || 'your group' };
     stopPicking();
     // one text per person (no group thread), then your room
-    run({ person: who, platform, mine: true }, [...invited.map((p) => () => text(p.phone, inviteText(platform, url))), () => openRoom(url)]);
+    run({ person: who, platform, mine: true }, [...invited.map((p) => () => textTo(p, inviteText(platform, url))), () => openRoom(url)]);
   };
 
   const failed = () => {
@@ -591,7 +596,7 @@ export default function Home() {
     setBroken((b) => { const n = new Set(b); n.delete(`${fix.person.id}:${fix.platform}`); return n; });
     setFix(null);
   };
-  const askAgain = () => { markAsked(fix.person, fix.platform); text(fix.person.phone, askText(fix.platform)).catch(() => {}); fixed(); };
+  const askAgain = () => { markAsked(fix.person, fix.platform); textTo(fix.person, askText(fix.platform)).catch(() => {}); fixed(); };
 
   const enabled = settings?.enabled ?? {};
   const rooms = HOSTABLE.filter((k) => enabled[k] && settings?.myRooms[k]);

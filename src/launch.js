@@ -1,23 +1,34 @@
 // Starting calls: opens the right app for each platform, and the texts Krypu sends on your behalf
 // (you always press Send yourself - Krypu only fills in the message).
-import * as WebBrowser from 'expo-web-browser';
-import { Linking } from 'react-native';
+import * as IntentLauncher from 'expo-intent-launcher';
+import { Linking, Platform } from 'react-native';
 import { PLATFORMS } from './platforms';
 
 const digits = (phone) => (phone ?? '').replace(/[^\d]/g, '');
 
-// Their link (or WhatsApp by phone number). FaceTime must open in a Chrome Custom Tab - Apple's web client only
-// works in Chrome/Edge, and the #fragment (the joining secret) must be passed through untouched.
+// FaceTime opens in Chrome itself (its own app/task), not a Custom Tab inside Krypu: switching back to Krypu
+// must never close the call's waiting room (it did with a Custom Tab). Apple's web client only supports
+// Chrome/Edge; the #fragment (the joining secret) is passed through untouched. Falls back to the default browser.
+async function openInChrome(url) {
+  if (Platform.OS !== 'android') return Linking.openURL(url);
+  try {
+    await IntentLauncher.startActivityAsync('android.intent.action.VIEW', { data: url, packageName: 'com.android.chrome' });
+  } catch {
+    await Linking.openURL(url);
+  }
+}
+
+// Their link (or WhatsApp by phone number).
 export async function openTheirs(person, platform) {
   const url = person.links?.[platform];
-  if (platform === 'facetime' && url) return WebBrowser.openBrowserAsync(url);
+  if (platform === 'facetime' && url) return openInChrome(url);
   if (url) return Linking.openURL(url);
   if (platform === 'whatsapp' && person.phone) return Linking.openURL(`https://wa.me/${digits(person.phone)}`);
   throw new Error(`No ${PLATFORMS[platform].label} link saved for ${person.name}.`);
 }
 
 export function openRoom(url) {
-  return Linking.openURL(url);
+  return url.includes('facetime.apple.com') ? openInChrome(url) : Linking.openURL(url);
 }
 
 export function callPhone(person) {
@@ -34,6 +45,7 @@ export function inviteText(platform, url) {
 }
 
 export function nudgeText(platform) {
+  if (platform === 'facetime') return "I'm calling you on FaceTime - tap the notification on your iPhone to let me in!";
   return `I'm on ${PLATFORMS[platform].label} now - join me when you can!`;
 }
 

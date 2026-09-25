@@ -35,6 +35,8 @@ export const DEFAULTS = {
   hidden: {},
   // true once you chose "Delete, and don't ask again"
   skipDeleteConfirm: false,
+  // when Krypu last opened a text to each person: {contactId: ISO time} - skips a repeat nudge right after
+  lastText: {},
 };
 
 const SettingsContext = createContext(null);
@@ -49,7 +51,7 @@ export function SettingsProvider({ children }) {
         setSettings({ ...DEFAULTS, ...saved, enabled: { ...DEFAULTS.enabled, ...saved.enabled },
                       myRooms: { ...DEFAULTS.myRooms, ...saved.myRooms }, notes: { ...saved.notes }, tz: { ...saved.tz },
                       tasks: saved.tasks ?? [], calls: { ...saved.calls }, groups: saved.groups ?? [],
-                      iphone: { ...saved.iphone }, asked: { ...saved.asked }, hidden: { ...saved.hidden } });
+                      iphone: { ...saved.iphone }, asked: { ...saved.asked }, hidden: { ...saved.hidden }, lastText: { ...saved.lastText } });
       })
       .catch(() => setSettings(DEFAULTS));
   }, []);
