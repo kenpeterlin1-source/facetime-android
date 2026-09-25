@@ -295,3 +295,19 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
   their reply) it offers "Save to <person you asked most recently>" or someone else you asked.
 - **Saved groups** (Ken): in group mode, chips like "Family · 5" select members; "+ Save these N as a group";
   long-press to delete (`settings.groups`).
+- 2026-09-25 (paused for a meeting): **automatic link capture - built, compiled, NOT yet tested on the phone.**
+  - `modules/krypu-messages` (local Expo module, Kotlin): `scanSms()` reads received SMS/MMS for call links
+    (READ_SMS), `LinkListener` (NotificationListenerService) keeps call links from Google/Samsung Messages
+    notifications (covers RCS) in SharedPreferences, `takeFound()` hands them over, `isWatching()` /
+    `openWatchSettings()` for Notification access.
+  - `src/messages.js`: old texts matched to contacts by last 10 digits of the number; new ones by sender name as
+    Messages shows it; saved onto the card if they don't already have a link for that platform. Home shows "Saved
+    from your texts"; Settings → "Links from your texts": **Find links in my old texts** + **Watch new texts
+    automatically** (sideloaded app → Android may call Notification access a restricted setting: App info → ⋮ →
+    Allow restricted settings).
+  - Also since 0.1.3 (unreleased): iPhone people shown with a blue avatar + "iPhone · asked" chip; asking for a
+    FaceTime link marks them as iPhone; full phone-prefix → time-zone table from Google libphonenumber
+    (`tools/gen_phone_zones.py` → `src/phoneZones.js`; fixes Kate's 484 "unknown").
+  - **Resume:** unlock phone → dev build (`npx expo start --dev-client`, adb reverse tcp:8081) → Settings → Find links
+    in my old texts (Ken allows SMS; expect Willow's old FaceTime link) → Watch new texts (Ken enables Notification
+    access) → wait for Kate's reply (asked 2026-09-25 08:31) → release 0.1.4.

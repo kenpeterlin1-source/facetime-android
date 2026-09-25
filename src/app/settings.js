@@ -1,8 +1,10 @@
 // Settings: video apps on/off, your own rooms, and app version + update check.
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { AppState, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import AiSetup from '../AiSetup';
+import { useContacts } from '../contacts';
+import * as Messages from '../messages';
 import { HOSTABLE, SETUP_HELP } from '../myRooms';
 import { TASK_TARGETS } from '../saveTasks';
 import { detectPlatform, newJitsiRoom, PLATFORMS, PLATFORM_ORDER } from '../platforms';
@@ -52,6 +54,50 @@ function RoomField({ platform, needsFix }) {
   );
 }
 
+// Find video links people have texted you: a one-time scan of old texts, and watching new ones automatically.
+function LinksFromTexts() {
+  const t = useTheme();
+  const contacts = useContacts();
+  const [watching, setWatching] = useState(Messages.isWatching());
+  const [state, setState] = useState('');
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') setWatching(Messages.isWatching()); });
+    return () => sub.remove();
+  }, []);
+  if (!Messages.available) return null;
+  const scan = async () => {
+    setState('Looking through your texts…');
+    try {
+      const saved = await Messages.scanOldTexts(contacts.people);
+      setState(saved.length ? `Saved ${saved.length}: ` + saved.map((m) => `${m.person.name} (${PLATFORMS[m.platform].label})`).join(', ')
+                            : 'No new links found in your texts.');
+      contacts.reload?.();
+    } catch (e) { setState(e.message); }
+  };
+  return (
+    <View style={[ui.row, { backgroundColor: t.card, borderColor: t.line, flexDirection: 'column', alignItems: 'stretch', gap: 10 }]}>
+      <Text style={[ui.rowNote, { color: t.muted, marginTop: 0 }]}>
+        Krypu can pick up FaceTime, Zoom, Meet and other links people text you and save them to their contact card.
+        Only call links are kept, and nothing leaves your phone.
+      </Text>
+      <Pressable onPress={scan} style={[ui.primary, { backgroundColor: t.sage }]}>
+        <Text style={[ui.primaryText, { color: t.paper }]}>Find links in my old texts</Text>
+      </Pressable>
+      {!!state && <Text style={[ui.rowNote, { color: t.ink, marginTop: 0 }]}>{state}</Text>}
+      <Pressable onPress={Messages.openWatchSettings} style={styles.watchRow}>
+        <View style={ui.shrink}>
+          <Text style={[ui.rowTitle, { color: t.ink }]}>Watch new texts automatically</Text>
+          <Text style={[ui.rowNote, { color: t.muted }]}>
+            {watching ? 'On - new links are saved as they arrive.'
+              : 'Off. Tap, then switch on Krypu under Notification access. If Android says it is a restricted setting: App info → Krypu → ⋮ → Allow restricted settings, then try again.'}
+          </Text>
+        </View>
+        <Text style={{ color: watching ? t.sage : t.clay, fontWeight: '700' }}>{watching ? 'On ✓' : 'Turn on'}</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 function Updates() {
   const t = useTheme();
   const [state, setState] = useState('idle'); // idle | checking | current | error | found
@@ -94,6 +140,9 @@ export default function Settings() {
       {HOSTABLE.filter((k) => settings.enabled[k]).map((k) => <RoomField key={k} platform={k} needsFix={fix === k} />)}
       {!HOSTABLE.some((k) => settings.enabled[k]) &&
         <Text style={[ui.rowNote, { color: t.muted }]}>Turn on Zoom, Meet, Teams or Jitsi to host calls from your own room.</Text>}
+
+      <Text style={[ui.section, { color: t.muted }]}>Links from your texts</Text>
+      <LinksFromTexts />
 
       <Text style={[ui.section, { color: t.muted }]}>After-call notes</Text>
       <AiSetup />
@@ -150,3 +199,5 @@ export default function Settings() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({ watchRow: { flexDirection: 'row', alignItems: 'center', gap: 12 } });

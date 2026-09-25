@@ -11,27 +11,30 @@ import { getAiKey } from '../secret';
 import { PLATFORMS } from '../platforms';
 import * as Clipboard from 'expo-clipboard';
 import { deleteContact, saveLink, useContacts } from '../contacts';
+import { collectNewLinks } from '../messages';
 import { askText, callPhone, inviteText, nudgeText, openRoom, openTheirs, text } from '../launch';
 import { useSettings } from '../settings';
 import { useTheme } from '../theme';
 import { guessZone, localTime, useNow, ZONE_CHOICES, zoneName } from '../timezones';
 import { Chip, Screen, ui, UpdateBanner } from '../ui';
 
-function Person({ person, t, onPress, picking, picked, broken, note, zone, now, iphone }) {
+function Person({ person, t, onPress, picking, picked, broken, note, zone, now, iphone, asked }) {
+  // iPhone people stand out: blue avatar instead of clay
+  const tone = iphone ? 'sky' : 'clay';
   const none = person.platforms.length === 0;
   return (
     <Pressable onPress={onPress}
       style={[styles.card, { backgroundColor: t.card, borderColor: picked ? t.moss : t.line }, picked && styles.picked]}>
-      <View style={[styles.avatar, { backgroundColor: t.claySoft }]}>
-        <Text style={[styles.avatarText, { color: t.clay }]}>{person.name[0]}</Text>
+      <View style={[styles.avatar, { backgroundColor: t[`${tone}Soft`] }]}>
+        <Text style={[styles.avatarText, { color: t[tone] }]}>{person.name[0]}</Text>
       </View>
       <View style={styles.cardBody}>
         <Text style={[styles.name, { color: t.ink }]}>{person.name}</Text>
         <LocalTime zone={zone} t={t} now={now} style={styles.timeLine} />
         <View style={ui.chips}>
           {iphone && !person.platforms.includes('facetime') && (
-            <View style={[ui.chip, { borderWidth: 1, borderColor: t.line, borderStyle: 'dashed' }]}>
-              <Text style={[ui.chipText, { color: t.muted }]}>iPhone</Text>
+            <View style={[ui.chip, { backgroundColor: t.skySoft }]}>
+              <Text style={[ui.chipText, { color: t.sky }]}>{asked ? 'iPhone · asked' : 'iPhone'}</Text>
             </View>
           )}
           {none
@@ -514,6 +517,19 @@ export default function Home() {
     } catch {}
   };
   useEffect(() => { checkClipboard(); }, []);
+  const [autoSaved, setAutoSaved] = useState([]); // links saved from your texts since you last looked
+  const peopleRef = useRef([]);
+  peopleRef.current = contacts.people;
+  const collect = async () => {
+    if (!peopleRef.current.length) return;
+    const { saved } = await collectNewLinks(peopleRef.current).catch(() => ({ saved: [] }));
+    if (saved.length) {
+      setAutoSaved((a) => [...a, ...saved]);
+      update((s) => { const asked = { ...s.asked }; saved.forEach((m) => delete asked[m.person.id]); return { ...s, asked }; });
+      contacts.reload?.();
+    }
+  };
+  useEffect(() => { collect(); }, [contacts.people.length]);
   // Steps Krypu runs one at a time, each when you come back to it: e.g. text them → open the call.
   // When the queue is empty and you come back, "did it work?" appears.
   const queue = useRef([]);
@@ -527,6 +543,7 @@ export default function Home() {
     const sub = AppState.addEventListener('change', async (s) => {
       if (s !== 'active') return;
       checkClipboard();
+      collect();
       if (!(await step())) setCall((c) => c && { ...c, back: true });
     });
     return () => sub.remove();
@@ -551,7 +568,10 @@ export default function Home() {
       : [() => openTheirs(person, platform)];
     run({ person, platform, mine }, steps);
   };
-  const markAsked = (person, platform) => update((s) => ({ ...s, asked: { ...s.asked, [person.id]: { platform, at: new Date().toISOString() } } }));
+  const markAsked = (person, platform) => update((s) => ({ ...s,
+    asked: { ...s.asked, [person.id]: { platform, at: new Date().toISOString() } },
+    // asking for a FaceTime link means they have an iPhone
+    iphone: platform === 'facetime' ? { ...s.iphone, [person.id]: true } : s.iphone }));
   const ask = (person, platform) => { setSelected(null); markAsked(person, platform); text(person.phone, askText(platform)).catch(() => {}); };
   const groupCall = (platform) => {
     const url = settings.myRooms[platform];
@@ -621,6 +641,15 @@ export default function Home() {
         )}
       </View>
       {!picking && <UpdateBanner />}
+      {!picking && autoSaved.length > 0 && (
+        <Pressable onPress={() => setAutoSaved([])} style={[styles.rooms, { backgroundColor: t.card, borderColor: t.sage }]}>
+          <Text style={[styles.name, { color: t.ink }]}>Saved from your texts</Text>
+          {autoSaved.map((m, i) => (
+            <Text key={i} style={[styles.sub, { color: t.muted }]}>✓ {m.person.name} · {PLATFORMS[m.platform].label}</Text>
+          ))}
+          <Text style={{ color: t.sage, fontWeight: '700' }}>OK</Text>
+        </Pressable>
+      )}
       {!picking && copied && (
         <CopiedLink copied={copied} people={contacts.people} t={t} onDone={() => { setCopied(null); contacts.reload?.(); }} />
       )}
@@ -694,7 +723,7 @@ export default function Home() {
       )}
       {people.map((p) => (
         <Person key={p.id} person={p} t={t} picking={picking} picked={group.has(p.id)}
-          broken={broken} iphone={settings.iphone[p.id] ?? p.iphoneHint} note={settings.notes[p.id]} zone={zoneFor(p, settings)} now={now} onPress={() => (picking ? toggle(p.id) : setSelected(p))} />
+          broken={broken} iphone={settings.iphone[p.id] ?? (p.iphoneHint || settings.asked[p.id]?.platform === 'facetime')} asked={settings.asked[p.id]?.platform === 'facetime'} note={settings.notes[p.id]} zone={zoneFor(p, settings)} now={now} onPress={() => (picking ? toggle(p.id) : setSelected(p))} />
       ))}
       {people.length === 0 && <Text style={[ui.lede, { color: t.muted }]}>No one matches “{query}”.</Text>}
       <PlatformSheet person={selected} rooms={rooms} t={t} onClose={() => setSelected(null)} onLaunch={launch}

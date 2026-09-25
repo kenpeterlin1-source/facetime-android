@@ -1,0 +1,37 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.peterlin.krypu.messages" >
+4
+5    <uses-sdk android:minSdkVersion="24" />
+6    <!-- one-time scan of old texts for video-call links (SMS/MMS only; RCS chats aren't readable by other apps) -->
+7    <uses-permission android:name="android.permission.READ_SMS" />
+7-->/Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:3:3-65
+7-->/Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:3:20-62
+8
+9    <application>
+9-->/Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:4:3-16:17
+10
+11        <!--
+12         watches message notifications (SMS and RCS) for new video-call links; the user switches it on in
+13         Settings → Notification access. Only links are kept; nothing leaves the phone.
+14        -->
+15        <service
+15-->/Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:7:5-15:15
+16            android:name="com.peterlin.krypu.messages.LinkListener"
+16-->/Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:8:7-62
+17            android:exported="false"
+17-->/Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:10:7-31
+18            android:label="Krypu - save call links from texts"
+18-->/Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:9:7-57
+19            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE" >
+19-->/Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:11:7-81
+20            <intent-filter>
+20-->/Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:12:7-14:23
+21                <action android:name="android.service.notification.NotificationListenerService" />
+21-->/Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:13:9-91
+21-->/Users/kpeterlin/personal/krypu/modules/krypu-messages/android/src/main/AndroidManifest.xml:13:17-88
+22            </intent-filter>
+23        </service>
+24    </application>
+25
+26</manifest>

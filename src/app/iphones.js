@@ -22,7 +22,7 @@ export default function IPhones() {
   const queue = useRef([]);
 
   // your ticks win; otherwise fall back to the "iPhone" label hint
-  const isIphone = (p) => settings?.iphone[p.id] ?? p.iphoneHint;
+  const isIphone = (p) => settings?.iphone[p.id] ?? (p.iphoneHint || settings?.asked[p.id]?.platform === 'facetime');
   const people = useMemo(() => contacts.people.filter((p) => p.phone), [contacts.people]);
   const shown = people.filter((p) => p.name.toLowerCase().includes(query.trim().toLowerCase()))
     .sort((a, b) => Number(isIphone(b)) - Number(isIphone(a)) || a.name.localeCompare(b.name));
@@ -76,15 +76,15 @@ export default function IPhones() {
         const asked = settings.asked[p.id]?.platform === 'facetime';
         return (
           <Pressable key={p.id} onPress={() => update((s) => ({ ...s, iphone: { ...s.iphone, [p.id]: !on } }))}
-            style={[styles.row, { backgroundColor: t.card, borderColor: on ? t.clay : t.line }]}>
+            style={[styles.row, { backgroundColor: on ? t.skySoft : t.card, borderColor: on ? t.sky : t.line }]}>
             <View style={ui.shrink}>
               <Text style={[styles.name, { color: t.ink }]}>{p.name}</Text>
               <Text style={[styles.sub, { color: t.muted }]}>
                 {p.links.facetime ? 'FaceTime link saved ✓' : asked ? 'Asked - waiting for their link' : p.iphoneHint ? 'Number saved as iPhone' : p.phone}
               </Text>
             </View>
-            <View style={[styles.check, { borderColor: on ? t.clay : t.line, backgroundColor: on ? t.clay : 'transparent' }]}>
-              {on && <Text style={{ color: t.onClay, fontWeight: '800' }}>✓</Text>}
+            <View style={[styles.check, { borderColor: on ? t.sky : t.line, backgroundColor: on ? t.sky : 'transparent' }]}>
+              {on && <Text style={{ color: t.paper, fontWeight: '800' }}>✓</Text>}
             </View>
           </Pressable>
         );
