@@ -37,7 +37,14 @@
         }
       ],
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-web-browser",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Krypu shows who you can video-call and saves their call links on their contact card."
+        }
+      ]
     ],
     "scheme": "krypu",
     "extra": {

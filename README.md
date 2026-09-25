@@ -281,3 +281,17 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
   kenpeterlin1@gmail.com** (discarded, nothing saved), remembered default, both link-failure paths. Fixed: ☏ emoji →
   dots, sheets clear the gesture bar, mock goes straight to "did it work?" (no real link to open yet).
   Not tested: Text/Email/Google Tasks targets, Claude extraction (no API key on the phone yet), light mode.
+- 2026-09-25: **Real contacts + real calls** (in testing, not released): `src/contacts.js` (expo-contacts, new
+  class API: `Contact.getAllDetails([FULL_NAME, PHONES, URL_ADDRESSES])`, links = URL entries matched by
+  `detectPlatform`, `saveLink()` → `addUrlAddress({label: 'FaceTime', url})`), permission card on home.
+  `src/launch.js`: FaceTime → Chrome Custom Tab (expo-web-browser), other links → app, WhatsApp by number →
+  wa.me chat, phone → dialer; texts are pre-filled and **you press Send**. Multi-step calls run as a queue, one step
+  each time you come back to Krypu (e.g. text "I'm on FaceTime" → open the link; group: one text per person → room).
+- **iPhone people** (Ken: most contacts have no links; asked people need brief steps + to know they must let him in):
+  `src/app/iphones.js` "Who has an iPhone?" - pre-ticks numbers labelled "iPhone" (Android can't detect iPhones;
+  bubble colour is an iPhone-only feature), you tick the rest (`settings.iphone`), **Ask N people** sends each the
+  FaceTime-link steps one by one and records `settings.asked`. Home shows an "iPhone" chip and an entry card when
+  few people have links. **Copied-link banner:** when Krypu opens with a video link on the clipboard (copied from
+  their reply) it offers "Save to <person you asked most recently>" or someone else you asked.
+- **Saved groups** (Ken): in group mode, chips like "Family · 5" select members; "+ Save these N as a group";
+  long-press to delete (`settings.groups`).

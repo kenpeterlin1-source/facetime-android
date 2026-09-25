@@ -1,20 +1,23 @@
 // Home: your contacts, filtered to people you can video-call on the apps you use.
 import { Redirect, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, AppState, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, AppState, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { analyzeNote } from '../ai';
+import { detectPlatform } from '../platforms';
 import { HOSTABLE } from '../myRooms';
 import { saveTasks, TASK_TARGETS } from '../saveTasks';
 import { getAiKey } from '../secret';
 import { PLATFORMS } from '../platforms';
-import { SAMPLE_CONTACTS } from '../sampleContacts';
+import * as Clipboard from 'expo-clipboard';
+import { saveLink, useContacts } from '../contacts';
+import { askText, callPhone, inviteText, nudgeText, openRoom, openTheirs, text } from '../launch';
 import { useSettings } from '../settings';
 import { useTheme } from '../theme';
 import { guessZone, localTime, useNow, ZONE_CHOICES, zoneName } from '../timezones';
 import { Chip, Screen, ui, UpdateBanner } from '../ui';
 
-function Person({ person, t, onPress, picking, picked, broken, note, zone, now }) {
+function Person({ person, t, onPress, picking, picked, broken, note, zone, now, iphone }) {
   const none = person.platforms.length === 0;
   return (
     <Pressable onPress={onPress}
@@ -26,8 +29,13 @@ function Person({ person, t, onPress, picking, picked, broken, note, zone, now }
         <Text style={[styles.name, { color: t.ink }]}>{person.name}</Text>
         <LocalTime zone={zone} t={t} now={now} style={styles.timeLine} />
         <View style={ui.chips}>
+          {iphone && !person.platforms.includes('facetime') && (
+            <View style={[ui.chip, { borderWidth: 1, borderColor: t.line, borderStyle: 'dashed' }]}>
+              <Text style={[ui.chipText, { color: t.muted }]}>iPhone</Text>
+            </View>
+          )}
           {none
-            ? <Text style={[styles.sub, { color: t.muted }]}>No video links yet</Text>
+            ? (!iphone && <Text style={[styles.sub, { color: t.muted }]}>No video links yet</Text>)
             : person.platforms.map((p) => <Chip key={p} platform={p} t={t} broken={broken.has(`${person.id}:${p}`)} />)}
         </View>
         {!!note && <Text style={[styles.sub, { color: t.muted, fontStyle: 'italic' }]} numberOfLines={1}>{note}</Text>}
@@ -99,16 +107,57 @@ function PersonNote({ person, t }) {
   );
 }
 
-function PlatformSheet({ person, rooms, t, onClose, onLaunch }) {
+// Paste a video link someone sent you; it's saved onto their contact card.
+function AddLink({ person, t, onSaved }) {
+  const [url, setUrl] = useState('');
+  const [error, setError] = useState('');
+  const save = async () => {
+    try { const platform = await saveLink(person, url.trim()); setUrl(''); setError(''); onSaved(platform, url.trim()); }
+    catch (e) { setError(e.message); }
+  };
+  return (
+    <View style={{ gap: 6 }}>
+      <View style={styles.rowGap}>
+        <TextInput value={url} onChangeText={(v) => { setUrl(v); setError(''); }} autoCapitalize="none" autoCorrect={false}
+          placeholder="Paste a link they sent you" placeholderTextColor={t.muted}
+          style={[styles.search, { flex: 1, backgroundColor: t.card, borderColor: error ? t.clay : t.line, color: t.ink }]} />
+        {!!url.trim() && (
+          <Pressable onPress={save} style={[styles.saveBtn, { backgroundColor: t.clay }]}>
+            <Text style={[ui.primaryText, { color: t.onClay }]}>Save</Text>
+          </Pressable>
+        )}
+      </View>
+      {!!error && <Text style={[styles.sub, { color: t.clay }]}>{error}</Text>}
+    </View>
+  );
+}
+
+function Option({ t, tone, title, how, dashed, onPress }) {
+  return (
+    <Pressable onPress={onPress} style={[styles.option, dashed ? [styles.mine, { borderColor: t[tone] }] : { backgroundColor: t.card, borderColor: t.line }]}>
+      <View style={[ui.dot, { backgroundColor: t[tone] }]} />
+      <View style={styles.cardBody}>
+        <Text style={[styles.name, { color: t.ink }]}>{title}</Text>
+        <Text style={[styles.sub, { color: t.muted }]}>{how}</Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function PlatformSheet({ person, rooms, t, onClose, onLaunch, onAsk, onLinkSaved }) {
   const { settings } = useSettings();
   const now = useNow();
   const insets = useSafeAreaInsets();
   if (!person) return null;
   const zone = zoneFor(person, settings);
   const late = zone && localTime(zone, now).night;
+  const enabled = settings.enabled;
+  // WhatsApp needs no link: anyone with a phone number might have it
+  const whatsappByNumber = enabled.whatsapp && person.phone && !person.platforms.includes('whatsapp');
+  const askable = ['facetime', 'zoom', 'meet', 'teams', 'slack'].filter((k) => enabled[k] && !person.platforms.includes(k));
   const voice = [
     person.phone && { key: 'phone', label: 'Phone call', how: `Opens your dialer with ${person.phone}.`, tone: 'clay' },
-    person.phone && person.platforms.includes('whatsapp') && { key: 'whatsapp-voice', label: 'WhatsApp voice call', how: 'Starts a WhatsApp voice call.', tone: 'sage' },
+    person.phone && enabled.whatsapp && { key: 'whatsapp-voice', label: 'WhatsApp', how: 'Opens your WhatsApp chat with them - tap the phone icon there to call.', tone: 'sage' },
   ].filter(Boolean);
   return (
     <Modal transparent animationType="fade" visible onRequestClose={onClose}>
@@ -126,53 +175,42 @@ function PlatformSheet({ person, rooms, t, onClose, onLaunch }) {
             </View>
           )}
           <ZonePicker person={person} t={t} />
+
           <Text style={[ui.section, { color: t.muted }]}>Video</Text>
-          {person.platforms.length === 0 ? (
-            <>
-              <Text style={[ui.lede, { color: t.muted }]}>
-                {person.name} has no video links saved yet. Ask them for one and it will be saved to their contact.
-              </Text>
-              <Pressable style={[ui.primary, { backgroundColor: t.clay }]}>
-                <Text style={[ui.primaryText, { color: t.onClay }]}>Ask for a link</Text>
-              </Pressable>
-            </>
-          ) : person.platforms.map((p) => {
-            const { label, tone, how } = PLATFORMS[p];
-            return (
-              <Pressable key={p} onPress={() => onLaunch(p, false)} style={[styles.option, { backgroundColor: t.card, borderColor: t.line }]}>
-                <View style={[ui.dot, { backgroundColor: t[tone] }]} />
-                <View style={styles.cardBody}>
-                  <Text style={[styles.name, { color: t.ink }]}>{label}</Text>
-                  <Text style={[styles.sub, { color: t.muted }]}>{how}</Text>
-                </View>
-              </Pressable>
-            );
-          })}
-          {rooms.length > 0 && <Text style={[ui.section, { color: t.muted }]}>Or invite {person.name} to your room</Text>}
-          {rooms.map((k) => {
-            const { label, tone } = PLATFORMS[k];
-            return (
-              <Pressable key={`mine-${k}`} onPress={() => onLaunch(k, true)} style={[styles.option, styles.mine, { borderColor: t[tone] }]}>
-                <View style={[ui.dot, { backgroundColor: t[tone] }]} />
-                <View style={styles.cardBody}>
-                  <Text style={[styles.name, { color: t.ink }]}>Your {label} room</Text>
-                  <Text style={[styles.sub, { color: t.muted }]}>
-                    Texts {person.name} your link, then opens your room.{k === 'jitsi' ? ' Nothing to install for them.' : ''}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-          {voice.length > 0 && <Text style={[ui.section, { color: t.muted }]}>Voice</Text>}
-          {voice.map((v) => (
-            <Pressable key={v.key} style={[styles.option, { backgroundColor: t.card, borderColor: t.line }]}>
-              <View style={[ui.dot, { backgroundColor: t[v.tone] }]} />
-              <View style={styles.cardBody}>
-                <Text style={[styles.name, { color: t.ink }]}>{v.label}</Text>
-                <Text style={[styles.sub, { color: t.muted }]}>{v.how}</Text>
-              </View>
-            </Pressable>
+          {person.platforms.map((p) => (
+            <Option key={p} t={t} tone={PLATFORMS[p].tone} title={PLATFORMS[p].label} how={PLATFORMS[p].how} onPress={() => onLaunch(p, false)} />
           ))}
+          {whatsappByNumber && (
+            <Option t={t} tone="sage" title="WhatsApp" how="If they have WhatsApp: opens your chat - tap the camera icon there to video call."
+              onPress={() => onLaunch('whatsapp', false)} />
+          )}
+          {!person.platforms.length && !whatsappByNumber && (
+            <Text style={[styles.sub, { color: t.muted }]}>No video links saved for {person.name} yet.</Text>
+          )}
+
+          {rooms.length > 0 && <Text style={[ui.section, { color: t.muted }]}>Or invite {person.name} to your room</Text>}
+          {rooms.map((k) => (
+            <Option key={`mine-${k}`} t={t} tone={PLATFORMS[k].tone} dashed title={`Your ${PLATFORMS[k].label} room`}
+              how={`Texts ${person.name} your link, then opens your room.${k === 'jitsi' ? ' Nothing to install for them.' : ''}`}
+              onPress={() => onLaunch(k, true)} />
+          ))}
+
+          {voice.length > 0 && <Text style={[ui.section, { color: t.muted }]}>Voice</Text>}
+          {voice.map((v) => <Option key={v.key} t={t} tone={v.tone} title={v.label} how={v.how} onPress={() => onLaunch(v.key, false)} />)}
+
+          {person.phone && askable.length > 0 && <Text style={[ui.section, { color: t.muted }]}>Ask {person.name} for a link</Text>}
+          {person.phone && askable.length > 0 && (
+            <View style={ui.chips}>
+              {askable.map((k) => (
+                <Pressable key={k} onPress={() => onAsk(k)}
+                  style={[ui.chip, { paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderColor: t.line, backgroundColor: t.card }]}>
+                  <Text style={[ui.chipText, { color: t[PLATFORMS[k].tone] }]}>+ {PLATFORMS[k].label}</Text>
+                </Pressable>
+              ))}
+            </View>
+          )}
+          <AddLink person={person} t={t} onSaved={onLinkSaved} />
+
           <Text style={[ui.section, { color: t.muted }]}>Your notes</Text>
           <PersonNote person={person} t={t} />
           <Pressable onPress={onClose} style={styles.cancel}>
@@ -307,8 +345,12 @@ function TasksPopup({ found, t, onClose }) {
 }
 
 // Their link failed: ask them for a new one, or paste one you already have.
-function FixTheirLink({ fix, t, onClose, onFixed }) {
+function FixTheirLink({ fix, t, onClose, onFixed, onAsk }) {
   const [draft, setDraft] = useState('');
+  const [error, setError] = useState('');
+  const save = async () => {
+    try { await saveLink(fix.person, draft.trim()); setDraft(''); onFixed(); } catch (e) { setError(e.message); }
+  };
   const insets = useSafeAreaInsets();
   if (!fix) return null;
   const { label } = PLATFORMS[fix.platform];
@@ -320,13 +362,14 @@ function FixTheirLink({ fix, t, onClose, onFixed }) {
           <Text style={[ui.lede, { color: t.muted }]}>
             Links can stop working if they're deleted or expire. Ask {fix.person.name} for a new one, or paste one you already have.
           </Text>
-          <Pressable onPress={onFixed} style={[ui.primary, { backgroundColor: t.clay }]}>
+          <Pressable onPress={onAsk} style={[ui.primary, { backgroundColor: t.clay }]}>
             <Text style={[ui.primaryText, { color: t.onClay }]}>Ask for a new link</Text>
           </Pressable>
           <TextInput value={draft} onChangeText={setDraft} placeholder={`Paste a new ${label} link`} placeholderTextColor={t.muted}
             autoCapitalize="none" style={[styles.search, { backgroundColor: t.card, borderColor: t.line, color: t.ink }]} />
+          {!!error && <Text style={[styles.sub, { color: t.clay }]}>{error}</Text>}
           {!!draft.trim() && (
-            <Pressable onPress={onFixed} style={[ui.primary, { backgroundColor: t.card, borderWidth: 1, borderColor: t.clay }]}>
+            <Pressable onPress={save} style={[ui.primary, { backgroundColor: t.card, borderWidth: 1, borderColor: t.clay }]}>
               <Text style={[ui.primaryText, { color: t.clay }]}>Save to {fix.person.name}'s contact</Text>
             </Pressable>
           )}
@@ -339,9 +382,101 @@ function FixTheirLink({ fix, t, onClose, onFixed }) {
   );
 }
 
+// A video link is on the clipboard (e.g. copied from their reply): save it to the person you asked.
+function CopiedLink({ copied, people, t, onDone }) {
+  const { settings, update } = useSettings();
+  const [picking, setPicking] = useState(false);
+  const [error, setError] = useState('');
+  const { label } = PLATFORMS[copied.platform];
+  // most recent pending ask for this platform is the best guess
+  const guessId = Object.entries(settings.asked).filter(([, a]) => a.platform === copied.platform)
+    .sort((a, b) => Date.parse(b[1].at) - Date.parse(a[1].at))[0]?.[0];
+  const guess = people.find((p) => p.id === guessId);
+  const already = people.find((p) => p.links?.[copied.platform] === copied.url);
+  if (already) return null;
+  const save = async (person) => {
+    try {
+      await saveLink(person, copied.url);
+      update((s) => { const asked = { ...s.asked }; delete asked[person.id]; return { ...s, asked }; });
+      onDone();
+    } catch (e) { setError(e.message); }
+  };
+  const waiting = people.filter((p) => settings.asked[p.id]?.platform === copied.platform && p.id !== guess?.id);
+  return (
+    <View style={[styles.rooms, { backgroundColor: t.card, borderColor: t.sage }]}>
+      <Text style={[styles.name, { color: t.ink }]}>You copied a {label} link</Text>
+      <Text style={[styles.sub, { color: t.muted }]} numberOfLines={1}>{copied.url}</Text>
+      {!!error && <Text style={[styles.sub, { color: t.clay }]}>{error}</Text>}
+      {guess && !picking && (
+        <Pressable onPress={() => save(guess)} style={[ui.primary, { backgroundColor: t.sage }]}>
+          <Text style={[ui.primaryText, { color: t.paper }]}>Save to {guess.name}</Text>
+        </Pressable>
+      )}
+      {picking && waiting.map((p) => (
+        <Pressable key={p.id} onPress={() => save(p)} style={[styles.option, { backgroundColor: t.paper, borderColor: t.line }]}>
+          <Text style={[styles.name, { color: t.ink, fontSize: 16 }]}>{p.name}</Text>
+        </Pressable>
+      ))}
+      {picking && !waiting.length && (
+        <Text style={[styles.sub, { color: t.muted }]}>Open the person and paste it under "Paste a link they sent you".</Text>
+      )}
+      <View style={styles.rowGap}>
+        {!picking && <Pressable onPress={() => setPicking(true)} hitSlop={6}><Text style={{ color: t.sage, fontWeight: '700' }}>Someone else</Text></Pressable>}
+        <Pressable onPress={onDone} hitSlop={6}><Text style={{ color: t.muted, fontWeight: '700' }}>  Not now</Text></Pressable>
+      </View>
+    </View>
+  );
+}
+
+// Group mode: saved groups ("Family", "Best friends") select their members in one tap; save the current picks as one.
+function SavedGroups({ picked, onPick, t }) {
+  const { settings, update } = useSettings();
+  const [naming, setNaming] = useState(false);
+  const [name, setName] = useState('');
+  const save = () => {
+    const n = name.trim();
+    if (!n) return;
+    update((s) => ({ ...s, groups: [...s.groups.filter((g) => g.name.toLowerCase() !== n.toLowerCase()),
+                                    { id: Math.random().toString(36).slice(2, 10), name: n, memberIds: [...picked] }] }));
+    setNaming(false); setName('');
+  };
+  const remove = (g) => Alert.alert(`Delete "${g.name}"?`, 'The people stay in your contacts.', [
+    { text: 'Cancel', style: 'cancel' },
+    { text: 'Delete', style: 'destructive', onPress: () => update((s) => ({ ...s, groups: s.groups.filter((x) => x.id !== g.id) })) },
+  ]);
+  return (
+    <View style={{ gap: 8 }}>
+      {settings.groups.length > 0 && (
+        <View style={ui.chips}>
+          {settings.groups.map((g) => (
+            <Pressable key={g.id} onPress={() => onPick(g.memberIds)} onLongPress={() => remove(g)}
+              style={[ui.chip, { paddingVertical: 8, paddingHorizontal: 12, backgroundColor: t.mossSoft }]}>
+              <Text style={[ui.chipText, { color: t.moss }]}>{g.name} · {g.memberIds.length}</Text>
+            </Pressable>
+          ))}
+        </View>
+      )}
+      {picked.size > 0 && (naming ? (
+        <View style={styles.rowGap}>
+          <TextInput value={name} onChangeText={setName} autoFocus placeholder="Family, Best friends…" placeholderTextColor={t.muted}
+            onSubmitEditing={save} style={[styles.search, { flex: 1, backgroundColor: t.card, borderColor: t.line, color: t.ink }]} />
+          <Pressable onPress={save} style={[styles.saveBtn, { backgroundColor: t.moss }]}>
+            <Text style={[ui.primaryText, { color: t.paper }]}>Save</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable onPress={() => setNaming(true)} hitSlop={6}>
+          <Text style={{ color: t.moss, fontWeight: '700' }}>+ Save these {picked.size} as a group</Text>
+        </Pressable>
+      ))}
+      {settings.groups.length > 0 && <Text style={[styles.sub, { color: t.muted }]}>Tip: press and hold a group to delete it.</Text>}
+    </View>
+  );
+}
+
 export default function Home() {
   const t = useTheme();
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   const now = useNow();
   const [query, setQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
@@ -354,17 +489,69 @@ export default function Home() {
   const [notesFor, setNotesFor] = useState(null);  // call that worked → "anything to remember?"
   const [found, setFound] = useState(null);        // {person, tasks} to show in the tasks popup
 
-  // Ask "did it work?" once you come back to Krypu from the call app (right away on web, where nothing is launched)
+  const contacts = useContacts();
+  const [copied, setCopied] = useState(null);      // {url, platform} found on the clipboard, not saved yet
+  const seenClip = useRef('');
+  const checkClipboard = async () => {
+    try {
+      if (!(await Clipboard.hasStringAsync())) return;
+      const clip = (await Clipboard.getStringAsync()).trim();
+      const url = clip.match(/https:\/\/\S+/)?.[0];
+      const platform = url && detectPlatform(url);
+      if (!platform || url === seenClip.current) return;
+      seenClip.current = url;
+      setCopied({ url, platform });
+    } catch {}
+  };
+  useEffect(() => { checkClipboard(); }, []);
+  // Steps Krypu runs one at a time, each when you come back to it: e.g. text them → open the call.
+  // When the queue is empty and you come back, "did it work?" appears.
+  const queue = useRef([]);
+  const step = async () => {
+    const next = queue.current.shift();
+    if (!next) return false;
+    try { await next(); } catch (e) { queue.current = []; setCall(null); Alert.alert("Couldn't open that", e.message); }
+    return true;
+  };
   useEffect(() => {
-    if (!call || call.back) return;
-    if (Platform.OS === 'web') { setCall({ ...call, back: true }); return; }
-    const sub = AppState.addEventListener('change', (s) => { if (s === 'active') setCall((c) => c && { ...c, back: true }); });
+    const sub = AppState.addEventListener('change', async (s) => {
+      if (s !== 'active') return;
+      checkClipboard();
+      if (!(await step())) setCall((c) => c && { ...c, back: true });
+    });
     return () => sub.remove();
-  }, [call]);
+  }, []);
+  // run a call: steps as above; the web preview can't open apps, so it goes straight to "did it work?"
+  const run = (info, steps) => {
+    if (Platform.OS === 'web') { setCall({ ...info, back: true }); return; }
+    queue.current = steps; setCall({ ...info, back: false }); step();
+  };
 
-  // Sample people have no real links yet, so nothing is opened and there's no app switch to wait for:
-  // go straight to "did it work?". Once real links are launched, set back: false and let AppState flip it.
-  const launch = (platform, mine) => { setCall({ person: selected, platform, mine, back: true }); setSelected(null); };
+  const launch = (platform, mine) => {
+    const person = selected; setSelected(null);
+    if (platform === 'phone') return run({ person, platform: 'phone', mine: false }, [() => callPhone(person)]);
+    if (platform === 'whatsapp-voice') return run({ person, platform: 'whatsapp', mine: false }, [() => openTheirs(person, 'whatsapp')]);
+    if (mine) {
+      const url = settings.myRooms[platform];
+      return run({ person, platform, mine }, [() => text(person.phone, inviteText(platform, url)), () => openRoom(url)]);
+    }
+    // FaceTime can't ring an Android caller's contact - text them first so they know to open the call
+    const steps = platform === 'facetime' && person.phone
+      ? [() => text(person.phone, nudgeText('facetime')), () => openTheirs(person, platform)]
+      : [() => openTheirs(person, platform)];
+    run({ person, platform, mine }, steps);
+  };
+  const markAsked = (person, platform) => update((s) => ({ ...s, asked: { ...s.asked, [person.id]: { platform, at: new Date().toISOString() } } }));
+  const ask = (person, platform) => { setSelected(null); markAsked(person, platform); text(person.phone, askText(platform)).catch(() => {}); };
+  const groupCall = (platform) => {
+    const url = settings.myRooms[platform];
+    const invited = contacts.people.filter((p) => group.has(p.id) && p.phone);
+    const who = { id: 'group', name: invited.map((p) => p.name.split(' ')[0]).join(', ') || 'your group' };
+    stopPicking();
+    // one text per person (no group thread), then your room
+    run({ person: who, platform, mine: true }, [...invited.map((p) => () => text(p.phone, inviteText(platform, url))), () => openRoom(url)]);
+  };
+
   const failed = () => {
     const c = call; setCall(null);
     if (c.mine) router.push({ pathname: '/settings', params: { fix: c.platform } });
@@ -374,14 +561,16 @@ export default function Home() {
     setBroken((b) => { const n = new Set(b); n.delete(`${fix.person.id}:${fix.platform}`); return n; });
     setFix(null);
   };
+  const askAgain = () => { markAsked(fix.person, fix.platform); text(fix.person.phone, askText(fix.platform)).catch(() => {}); fixed(); };
 
   const enabled = settings?.enabled ?? {};
   const rooms = HOSTABLE.filter((k) => enabled[k] && settings?.myRooms[k]);
   // only show platforms you've switched on
-  const people = useMemo(() => SAMPLE_CONTACTS
-    .map((c) => ({ ...c, platforms: c.platforms.filter((p) => enabled[p]) }))
-    .filter((c) => (showAll || picking || c.platforms.length > 0) && c.name.toLowerCase().includes(query.trim().toLowerCase())),
-  [query, showAll, picking, enabled]);
+  const all = useMemo(() => contacts.people.map((c) => ({ ...c, platforms: c.platforms.filter((p) => enabled[p]) })), [contacts.people, enabled]);
+  const withVideo = all.filter((c) => c.platforms.length > 0).length;
+  // nobody has links yet (typical on day one) → show everyone rather than an empty list
+  const everyone = showAll || picking || withVideo === 0;
+  const people = all.filter((c) => (everyone || c.platforms.length > 0) && c.name.toLowerCase().includes(query.trim().toLowerCase()));
 
   if (!settings) return null;
   if (!settings.onboarded) return <Redirect href="/welcome" />;
@@ -400,7 +589,7 @@ export default function Home() {
               <Text style={[ui.primaryText, { color: t.muted }]}>{rooms.length ? 'Pick people' : 'Set up a room in Settings'}</Text>
             </View>
           : rooms.map((k) => (
-              <Pressable key={k} style={[styles.barGo, { backgroundColor: t[PLATFORMS[k].tone] }]}>
+              <Pressable key={k} onPress={() => groupCall(k)} style={[styles.barGo, { backgroundColor: t[PLATFORMS[k].tone] }]}>
                 <Text style={[ui.primaryText, { color: t.paper }]}>{PLATFORMS[k].label} · {group.size}</Text>
               </Pressable>
             ))}
@@ -420,13 +609,49 @@ export default function Home() {
         )}
       </View>
       {!picking && <UpdateBanner />}
+      {!picking && copied && (
+        <CopiedLink copied={copied} people={contacts.people} t={t} onDone={() => { setCopied(null); contacts.reload?.(); }} />
+      )}
+      {!picking && contacts.status === 'ready' && withVideo < 3 && all.length > 0 && (
+        <Pressable onPress={() => router.push('/iphones')} style={[styles.rooms, { backgroundColor: t.card, borderColor: t.clay }]}>
+          <Text style={[styles.name, { color: t.ink }]}>Get FaceTime links from your iPhone people</Text>
+          <Text style={[styles.sub, { color: t.muted }]}>
+            Most of your people have no video links yet. Tick who has an iPhone and Krypu texts them how to send you one.
+          </Text>
+          <Text style={{ color: t.clay, fontWeight: '700' }}>Who has an iPhone? ›</Text>
+        </Pressable>
+      )}
+      {contacts.status === 'ask' && (
+        <View style={[styles.rooms, { backgroundColor: t.card, borderColor: t.clay }]}>
+          <Text style={[styles.name, { color: t.ink }]}>See your people</Text>
+          <Text style={[styles.sub, { color: t.muted }]}>
+            Krypu reads your contacts to show who you can call and how, and saves video links onto their contact cards.
+            Nothing leaves your phone.
+          </Text>
+          <Pressable onPress={contacts.ask} style={[ui.primary, { backgroundColor: t.clay }]}>
+            <Text style={[ui.primaryText, { color: t.onClay }]}>Allow contacts</Text>
+          </Pressable>
+        </View>
+      )}
+      {contacts.status === 'denied' && (
+        <View style={[styles.rooms, { backgroundColor: t.card, borderColor: t.clay }]}>
+          <Text style={[styles.name, { color: t.ink }]}>Contacts are turned off for Krypu</Text>
+          <Text style={[styles.sub, { color: t.muted }]}>Turn on Contacts in Krypu's app settings to see your people.</Text>
+          <Pressable onPress={() => Linking.openSettings()} style={[ui.primary, { backgroundColor: t.clay }]}>
+            <Text style={[ui.primaryText, { color: t.onClay }]}>Open settings</Text>
+          </Pressable>
+        </View>
+      )}
       {!picking && call?.back && <CallCheck call={call} t={t} onWorked={() => { setNotesFor(call); setCall(null); }} onFailed={failed} />}
       {!picking && notesFor && (
         <AfterCallNotes key={notesFor.person.id} call={notesFor} t={t} onDone={() => setNotesFor(null)}
           onTasks={(tasks) => { setFound({ person: notesFor.person, tasks }); setNotesFor(null); }} />
       )}
       {picking
-        ? <Text style={[ui.lede, { color: t.muted }]}>Pick people, then choose which of your rooms to use. Each of them gets the link by text or WhatsApp.</Text>
+        ? <>
+            <Text style={[ui.lede, { color: t.muted }]}>Pick people or a saved group, then choose which of your rooms to use. Each of them gets the link by text.</Text>
+            <SavedGroups picked={group} onPick={(ids) => setGroup(new Set(ids))} t={t} />
+          </>
         : <View style={[styles.rooms, { backgroundColor: t.card, borderColor: t.line }]}>
             <Text style={[ui.section, { color: t.muted, marginTop: 0 }]}>Your rooms, ready to send</Text>
             <View style={ui.chips}>
@@ -457,11 +682,14 @@ export default function Home() {
       )}
       {people.map((p) => (
         <Person key={p.id} person={p} t={t} picking={picking} picked={group.has(p.id)}
-          broken={broken} note={settings.notes[p.id]} zone={zoneFor(p, settings)} now={now} onPress={() => (picking ? toggle(p.id) : setSelected(p))} />
+          broken={broken} iphone={settings.iphone[p.id] ?? p.iphoneHint} note={settings.notes[p.id]} zone={zoneFor(p, settings)} now={now} onPress={() => (picking ? toggle(p.id) : setSelected(p))} />
       ))}
       {people.length === 0 && <Text style={[ui.lede, { color: t.muted }]}>No one matches “{query}”.</Text>}
-      <PlatformSheet person={selected} rooms={rooms} t={t} onClose={() => setSelected(null)} onLaunch={launch} />
-      <FixTheirLink fix={fix} t={t} onClose={() => setFix(null)} onFixed={fixed} />
+      <PlatformSheet person={selected} rooms={rooms} t={t} onClose={() => setSelected(null)} onLaunch={launch}
+        onAsk={(platform) => ask(selected, platform)}
+        onLinkSaved={(platform, url) => { setSelected((p) => p && { ...p, links: { ...p.links, [platform]: url },
+          platforms: p.platforms.includes(platform) ? p.platforms : [...p.platforms, platform] }); contacts.reload?.(); }} />
+      <FixTheirLink fix={fix} t={t} onClose={() => setFix(null)} onFixed={() => { fixed(); contacts.reload?.(); }} onAsk={askAgain} />
       <TasksPopup key={found?.person.id} found={found} t={t} onClose={() => setFound(null)} />
     </Screen>
   );
@@ -497,6 +725,7 @@ const styles = StyleSheet.create({
            maxWidth: 560, width: '100%', alignSelf: 'center' },
   sheetBody: { padding: 20, paddingBottom: 32, gap: 10 },
   note: { minHeight: 70, borderWidth: 1, borderRadius: 14, padding: 12, fontSize: 15, textAlignVertical: 'top' },
+  saveBtn: { paddingHorizontal: 16, borderRadius: 14, justifyContent: 'center' },
   sheetTitle: { fontSize: 24, fontWeight: '700', fontFamily: 'Georgia', marginBottom: 4 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16, borderWidth: 1 },
   mine: { borderStyle: 'dashed', borderWidth: 1.5 },

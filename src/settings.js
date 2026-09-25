@@ -25,6 +25,12 @@ export const DEFAULTS = {
   //   calls: {personId: [{id, at, platform, note, followUps: [{text, done}], facts: [..]}]}  (newest first)
   tasks: [],
   calls: {},
+  // saved groups for group calls: [{id, name, memberIds}]
+  groups: [],
+  // people you've marked as iPhone users: {contactId: true}
+  iphone: {},
+  // link requests you've sent and not received yet: {contactId: {platform, at}} - used to match a copied link
+  asked: {},
 };
 
 const SettingsContext = createContext(null);
@@ -38,7 +44,8 @@ export function SettingsProvider({ children }) {
         const saved = raw ? JSON.parse(raw) : {};
         setSettings({ ...DEFAULTS, ...saved, enabled: { ...DEFAULTS.enabled, ...saved.enabled },
                       myRooms: { ...DEFAULTS.myRooms, ...saved.myRooms }, notes: { ...saved.notes }, tz: { ...saved.tz },
-                      tasks: saved.tasks ?? [], calls: { ...saved.calls } });
+                      tasks: saved.tasks ?? [], calls: { ...saved.calls }, groups: saved.groups ?? [],
+                      iphone: { ...saved.iphone }, asked: { ...saved.asked } });
       })
       .catch(() => setSettings(DEFAULTS));
   }, []);
