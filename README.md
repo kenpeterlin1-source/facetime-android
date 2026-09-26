@@ -338,3 +338,19 @@ is only worth it if the three Apple users won't move off FaceTime — which is u
   this call"; after close: Rejoin / Done → tasks from call notes / Link didn't work). Home routes FaceTime there when
   Chrome is available. Dev-only test: open `/call?id=<contact id>&testUrl=https://example.com` so nothing rings.
   Resume: unlock phone → dev server → test layout with testUrl → real call with Kate → release 0.1.5.
+
+- 2026-09-25 (evening): **0.1.5 dev build installed on the phone** (signed with the same debug key as 0.1.4, so it
+  installed over it and kept Krypu's data). Test not run yet - the phone kept locking. Kate Peterlin's contact id is
+  **1823**.
+  - **Resume:** home Wi-Fi, reconnect Wireless debugging, `npx expo start --dev-client` in `krypu/`,
+    `adb reverse tcp:8081 tcp:8081`.
+  - Open `krypu://call?id=1823&testUrl=https%3A%2F%2Fexample.com`.
+  - Turn on Developer options → Stay awake on the phone first.
+- **Rename (Ken doesn't like "Krypu"):** web + store check 2026-09-25.
+  - **Contact Summit** is the favourite. No app uses it; contactsummit.com is taken (2020, Unstoppable Domains), so
+    look at contactsummit.app / getcontactsummit.com. Check the USPTO trademark database before renaming.
+  - Also free of apps: FaceNear (.com taken since 2004) and Facevy (.com taken 2020).
+  - Taken by other apps: Facely (5+ apps), SeeMe ("SeeMe Live Calls" is a video-call app), Facelift, Facelink,
+    Faceli, Kallo/Kalla.
+  - The rename touches the app name, package id, GitHub repo, update checks (`releasesRepo`) and the web page, so do it
+    once.
